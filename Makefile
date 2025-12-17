@@ -16,10 +16,6 @@ init:
 
 build:
 	docker-compose run --rm platformio run
-	@if [ -f compile_commands.json ]; then \
-		sed -i 's|"directory": "/workspace"|"directory": "."|g' compile_commands.json; \
-		echo "✓ compile_commands.json fixed"; \
-	fi
 
 upload:
 	docker-compose run --rm platformio run -t upload
@@ -35,8 +31,7 @@ clean:
 compiledb:
 	docker-compose run --rm platformio run -t compiledb
 	@echo "Fixing compile_commands.json for host usage..."
-	@sed -i 's|"directory": "/workspace"|"directory": "."|g' compile_commands.json
-	@echo "✓ compile_commands.json fixed for clangd"
+	@python3 scripts/fix_compile_commands_for_host.py
 
 shell:
 	docker-compose run --rm --entrypoint /bin/bash platformio

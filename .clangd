@@ -1,17 +1,21 @@
 CompileFlags:
   Add:
-    # Stub headers for Arduino/ESP32 (fallback when real headers not found)
+    # Project include paths (IMPORTANT: These must come first!)
+    - -Iinclude
+    - -Isrc
     - -Iinclude/stubs
 
     # Arduino & ESP32 Defines
     - -DARDUINO=10812
     - -DESP32
     - -DCORE_DEBUG_LEVEL=3
-    - -DARDUINO_USB_CDC_ON_BOOT=1
+    - -DARDUINO_USB_CDC_ON_BOOT=0
+    - -DARDUINO_USB_MODE=0
     - -DBOARD_HAS_PSRAM
     - -Wno-unknown-warning-option
     - -ferror-limit=0
     - --target=x86_64-unknown-linux-gnu
+    - -std=gnu++11
 
   Remove:
     # ESP32-spezifische Flags die Clangd verwirren

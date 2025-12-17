@@ -9,8 +9,18 @@
 
 // FreeRTOS - basic types
 typedef void* TaskHandle_t;
+typedef void* QueueHandle_t;
 typedef uint32_t TickType_t;
 typedef long BaseType_t;
+typedef unsigned long UBaseType_t;
+
+// FreeRTOS constants
+#define pdTRUE ((BaseType_t)1)
+#define pdFALSE ((BaseType_t)0)
+#define pdPASS (pdTRUE)
+#define pdFAIL (pdFALSE)
+#define portMAX_DELAY ((TickType_t)0xffffffffUL)
+// NULL already defined in stddef.h
 
 // FreeRTOS functions
 extern "C" {
@@ -25,7 +35,13 @@ extern "C" {
   );
 
   void vTaskDelay(TickType_t);
+  void vTaskDelete(TaskHandle_t);
   int xPortGetCoreID();
+  UBaseType_t uxTaskGetStackHighWaterMark(TaskHandle_t);
+
+  QueueHandle_t xQueueCreate(UBaseType_t, UBaseType_t);
+  BaseType_t xQueueSend(QueueHandle_t, const void*, TickType_t);
+  BaseType_t xQueueReceive(QueueHandle_t, void*, TickType_t);
 }
 
 // FreeRTOS macros
@@ -75,12 +91,47 @@ public:
   size_t write(const uint8_t* buffer, size_t size);
   void print(const char*);
   void print(const String&);
+  void print(int);
+  void print(unsigned int);
+  void print(long);
+  void print(unsigned long);
   void println(const char*);
   void println(const String&);
+  void println(int);
+  void println(unsigned int);
+  void println(long);
+  void println(unsigned long);
   void println();
+  void printf(const char* format, ...);
 };
 
 extern HardwareSerial Serial;
+
+// ESP class
+class EspClass {
+public:
+  uint32_t getFreeHeap();
+  uint32_t getChipCores();
+  uint32_t getCpuFreqMHz();
+  uint32_t getFlashChipSize();
+  uint32_t getPsramSize();
+};
+
+extern EspClass ESP;
+
+// Interrupt functions
+typedef void (*voidFuncPtr)(void);
+void attachInterrupt(uint8_t pin, voidFuncPtr handler, int mode);
+void detachInterrupt(uint8_t pin);
+int digitalPinToInterrupt(uint8_t pin);
+
+// Interrupt modes
+#define FALLING 0x02
+#define RISING 0x03
+#define CHANGE 0x04
+
+// ISR attribute
+#define IRAM_ATTR __attribute__((section(".iram1")))
 
 // Setup and loop
 void setup();
