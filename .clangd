@@ -1,0 +1,32 @@
+CompileFlags:
+  Add:
+    # Stub headers for Arduino/ESP32 (fallback when real headers not found)
+    - -Iinclude/stubs
+
+    # Arduino & ESP32 Defines
+    - -DARDUINO=10812
+    - -DESP32
+    - -DCORE_DEBUG_LEVEL=3
+    - -DARDUINO_USB_CDC_ON_BOOT=1
+    - -DBOARD_HAS_PSRAM
+    - -Wno-unknown-warning-option
+    - -ferror-limit=0
+    - --target=x86_64-unknown-linux-gnu
+
+  Remove:
+    # ESP32-spezifische Flags die Clangd verwirren
+    - -fno-tree-switch-conversion
+    - -mtext-section-literals
+    - -mlongcalls
+    - -fstrict-volatile-bitfields
+    - -mlong-calls
+    - --driver-mode=g++
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+  Suppress:
+    - "pp_file_not_found"
+
+Index:
+  Background: Build

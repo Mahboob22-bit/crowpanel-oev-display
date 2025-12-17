@@ -1,0 +1,21 @@
+services:
+  platformio:
+    build:
+      context: .
+      args:
+        USER_UID: ${UID:-1000}
+        USER_GID: ${GID:-1000}
+    volumes:
+      - .:/workspace
+      - platformio-cache:/home/devuser/.platformio
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    working_dir: /workspace
+    user: "${UID:-1000}:${GID:-1000}"
+    privileged: true
+    environment:
+      - HOME=/home/devuser
+
+volumes:
+  platformio-cache:
+    driver: local

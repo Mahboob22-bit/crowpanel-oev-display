@@ -1,0 +1,31 @@
+# PlatformIO
+.pio/
+.vscode/
+.cache/
+lib/
+test/
+
+# Build
+*.o
+*.bin
+*.elf
+
+# LSP
+compile_commands.json
+.clangd/
+.ccls-cache/
+
+# Python
+__pycache__/
+*.pyc
+
+# Docker
+.env
+.devcontainer/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
