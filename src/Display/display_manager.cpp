@@ -5,7 +5,45 @@
 #include <Fonts/FreeSans9pt7b.h>
 
 DisplayManager::DisplayManager(GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>* disp)
-    : display(disp), initialized(false), updateCounter(0) {}
+    : display(disp), initialized(false), updateCounter(0), taskHandle(NULL), eventQueue(NULL) {}
+
+void DisplayManager::begin(QueueHandle_t queue) {
+    this->eventQueue = queue;
+
+    xTaskCreatePinnedToCore(
+        taskCode,
+        "DisplayTask",
+        10240,             // Mehr Stack für Display + GxEPD2
+        this,
+        2,                 // Höhere Priorität
+        &taskHandle,
+        0                  // Core 0
+    );
+}
+
+void DisplayManager::taskCode(void* pvParameters) {
+    DisplayManager* instance = (DisplayManager*)pvParameters;
+    DisplayEvent event;
+
+    // Display initialisieren
+    if (!instance->init()) {
+        Logger::error("TASK_DISPLAY", "Display initialization failed!");
+        vTaskDelete(NULL);
+        return;
+    }
+
+    // Initiales Display-Update
+    instance->update(EVENT_INIT);
+
+    // Event Loop
+    for(;;) {
+        // Warte auf Events aus der Queue (blocking)
+        if (xQueueReceive(instance->eventQueue, &event, portMAX_DELAY) == pdTRUE) {
+            Logger::printf("TASK_DISPLAY", "Display event received: %d", event);
+            instance->update(event);
+        }
+    }
+}
 
 bool DisplayManager::init() {
     // Display Power ON
@@ -97,6 +135,12 @@ void DisplayManager::drawUI(DisplayEvent event) {
             break;
         case EVENT_UPDATE:
             display->println("UPDATE");
+            break;
+        case EVENT_WIFI_CONNECTED:
+            display->println("WIFI CONNECTED");
+            break;
+        case EVENT_WIFI_LOST:
+            display->println("WIFI LOST");
             break;
         default:
             display->println("UNKNOWN");
