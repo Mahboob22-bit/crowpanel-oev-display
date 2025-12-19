@@ -1,178 +1,96 @@
 # CrowPanel ESP32-S3 4.2" E-Paper Display - ÖV Display Projekt
 
-Projekt für das Elecrow CrowPanel 4.2" E-Paper HMI Display mit ESP32-S3.
+Ein smartes E-Paper Display für Schweizer ÖV-Abfahrtszeiten, basierend auf dem Elecrow CrowPanel 4.2".
 
-## Hardware
+## 🎯 Projektziel
 
-- **Board**: ESP32-S3-WROOM-1-N8R8
-- **Display**: 4.2" E-Paper (400x300px, schwarz/weiß)
-- **Flash**: 8 MB
-- **PSRAM**: 8 MB (OPI Mode)
-- **CPU**: Dual-Core @ 240 MHz
+Ein wartungsfreies Display, das die nächsten Abfahrten einer konfigurierten Haltestelle anzeigt.
+Vollständig konfigurierbar über ein Web-Interface (WLAN, Haltestelle, Linien).
 
-## Features
+## ✨ Features
 
-✅ Event-driven Display Updates (nur bei Button-Press)
-✅ Power-Management für E-Paper (Hibernate zwischen Updates)
-✅ FreeRTOS Multi-Tasking (3 Tasks auf 2 Cores)
-✅ Button-Interrupt-System mit Debouncing
-✅ Hardware-UART für stabile Serial-Kommunikation
-✅ Strukturierter Code mit DisplayManager-Klasse
+- **Echtzeit-Fahrplan:** Zeigt die nächsten Verbindungen von der Schweizer Transport API (opentransportdata.swiss).
+- **Web-Konfiguration:** Keine Code-Änderung nötig! WLAN und Haltestelle einfach per Browser einstellen.
+- **Automatische Updates:** Aktualisiert alle 30 Sekunden (konfigurierbar).
+- **NTP-Zeitsynchronisation:** Immer die exakte Uhrzeit.
+- **Smart Power Management:** Nutzt Deep-Sleep/Hibernate des E-Papers zwischen den Updates.
+- **Robust:** Reconnect-Logik und visuelle Fehleranzeige bei Verbindungsproblemen.
 
-## Architektur
+## 🛠 Hardware
 
-### FreeRTOS Tasks
+- **Board:** Elecrow CrowPanel ESP32-S3 HMI 4.2" E-Paper
+- **Display:** 4.2" E-Paper (400x300px, schwarz/weiß)
+- **Controller:** ESP32-S3 (8MB Flash, 8MB PSRAM)
 
-| Task | Core | Stack | Priority | Funktion |
-|------|------|-------|----------|----------|
-| DisplayTask | 0 | 10KB | 2 | E-Paper Display Updates |
-| ButtonTask | 0 | 4KB | 2 | Button Monitoring & Events |
-| SerialTask | 1 | 4KB | 1 | System Monitoring |
+## 🏗 Architektur
 
-### Event-System
+Das Projekt folgt einer modularen, Event-getriebenen Architektur basierend auf FreeRTOS Tasks.
+Details siehe [ARCHITECTURE.md](ARCHITECTURE.md).
 
-- Button-Interrupts → Flags setzen
-- ButtonTask überprüft Flags → Events in Queue
-- DisplayTask wartet auf Queue → Update Display
-- Display geht in Hibernate → Stromsparen!
+### Kern-Module
+- **WifiModule:** Managed Connectivity & Access Point.
+- **WebConfigModule:** Stellt die SPA (Single Page Application) zur Konfiguration bereit.
+- **TransportModule:** Kommuniziert mit der Transport API.
+- **DisplayModule:** Steuert das E-Paper.
+- **TimeModule:** Synchronisiert die Zeit via NTP.
 
-## Pin-Belegung
+## 🚀 Setup & Development
 
-### E-Paper Display
-
-| Pin | GPIO | Funktion |
-|-----|------|----------|
-| PWR | 7 | Power Enable |
-| BUSY | 48 | Busy Status |
-| RST | 47 | Reset |
-| DC | 46 | Data/Command |
-| CS | 45 | Chip Select |
-| SCK | 39 | SPI Clock |
-| MOSI | 40 | SPI MOSI |
-
-### Buttons
-
-| Button | GPIO | Funktion |
-|--------|------|----------|
-| MENU | 2 | Menu-Taste |
-| EXIT | 1 | Exit-Taste |
-| ROTARY_SW | 5 | Rotary Switch |
-
-## Development
+Das Projekt nutzt **Docker** und **Make**, um eine konsistente Entwicklungsumgebung zu gewährleisten. Es ist keine lokale Installation von PlatformIO notwendig.
 
 ### Voraussetzungen
-
 - Docker & Docker Compose
-- USB-Verbindung zum ESP32-S3
+- Make
+- API Key von [opentransportdata.swiss](https://opentransportdata.swiss/) (kostenlos registrieren)
+- USB-Verbindung zum ESP32 (üblicherweise `/dev/ttyUSB0`)
 
-### Build & Upload
+### Befehle
 
 ```bash
 # Projekt bauen
 make build
 
-# Auf Board hochladen
+# Auf das Board flashen
 make upload
 
 # Serial Monitor starten
 make monitor
 
-# Alles zusammen
+# Alles in einem: Build, Upload & Monitor
 make flash
+
+# Entwicklungsumgebung bereinigen
+make clean
+
+# Für IDE-Autocompletion (z.B. clangd)
+make compiledb
 ```
 
-### Entwicklungsumgebung
+### Erste Einrichtung (Geplant)
+1. Nach dem Start spannt das Gerät ein WLAN auf: `CrowPanel-OEV`
+2. Verbinden und `http://192.168.4.1` aufrufen
+3. Heim-WLAN und API-Key konfigurieren
+4. Haltestelle suchen und speichern
 
-Das Projekt nutzt ein Docker-basiertes PlatformIO-Setup für konsistente Builds.
+## 🔌 Pin-Belegung
 
-## Verwendung
+### E-Paper Display
+| Pin | GPIO | Funktion |
+|-----|------|----------|
+| PWR | 7 | Power Enable |
+| BUSY| 48 | Busy Status |
+| RST | 47 | Reset |
+| DC | 46 | Data/Command |
+| CS | 45 | Chip Select |
+| SCK | 39 | SPI Clock |
+| MOSI| 40 | SPI MOSI |
 
-1. Board mit USB verbinden
-2. `make flash` ausführen
-3. Buttons drücken um Display zu aktualisieren:
-   - **MENU** (GPIO 2): Menu-Event
-   - **EXIT** (GPIO 1): Exit-Event
-   - **ROTARY** (GPIO 5): Rotary-Event
+### Buttons
+| Button | GPIO | Funktion |
+|--------|------|----------|
+| MENU | 2 | Menu / Config |
+| EXIT | 1 | Zurück |
+| ROTARY | 5 | Navigation |
 
-Das Display zeigt:
-- Letztes Button-Event
-- Update-Counter
-- System-Informationen (CPU, RAM, PSRAM)
-- Status-Nachricht
-
-## Code-Struktur
-
-```
-├── include/
-│   ├── crowpanel_pins.h      # Pin-Definitionen
-│   ├── display_manager.h     # Display Manager Header
-│   └── stubs/                # LSP Stubs
-├── src/
-│   ├── main.cpp              # Hauptprogramm
-│   └── display_manager.cpp   # Display Manager Implementation
-├── scripts/                   # Build-Scripts
-├── platformio.ini            # PlatformIO-Konfiguration
-└── docker-compose.yml        # Docker-Setup
-```
-
-## Wichtige Hinweise
-
-### E-Paper Display Lebensdauer
-
-⚠️ **E-Paper Displays haben eine begrenzte Anzahl von Refresh-Zyklen!**
-
-- Dieses Setup aktualisiert nur bei Button-Press
-- Display geht zwischen Updates in Hibernate
-- Kein kontinuierliches Refresh wie bei LCD/OLED
-
-### Power-Management
-
-Das Display wird automatisch:
-- Eingeschaltet vor dem Update
-- Aktualisiert mit Full-Refresh
-- In Hibernate versetzt (Strom aus)
-
-### Serial-Kommunikation
-
-Das Board nutzt **Hardware-UART** (nicht USB-CDC):
-- Stabiler als USB-CDC auf ESP32-S3
-- 115200 Baud
-- `/dev/ttyUSB0` (Linux)
-
-## Troubleshooting
-
-### Display zeigt nichts
-
-1. SPI-Pins überprüfen (evtl. GPIO 12/11 statt 39/40)
-2. Display-Power-Pin prüfen (GPIO 7)
-3. Serial-Log auf Fehler checken
-
-### Buttons reagieren nicht
-
-1. Pull-Up-Widerstände aktiviert? (INPUT_PULLUP)
-2. Richtige GPIOs? (siehe crowpanel_pins.h)
-3. Debounce-Delay evtl. erhöhen
-
-### Stack-Overflow
-
-1. Stack-Größen in main.cpp erhöhen
-2. Debug-Level reduzieren (CORE_DEBUG_LEVEL)
-3. Serial-Monitor auf Backtrace prüfen
-
-## Nächste Schritte
-
-- [ ] Swiss Transport API Integration
-- [ ] WiFi-Verbindung
-- [ ] Echtzeit-ÖV-Daten anzeigen
-- [ ] Rotary Encoder für Navigation
-- [ ] Konfiguration über Buttons
-
-## Lizenz
-
-Dieses Projekt ist Open Source.
-
-## Credits
-
-- Hardware: Elecrow CrowPanel
-- Display Library: GxEPD2
-- Framework: Arduino ESP32 + FreeRTOS
+## 📝 Lizenz
+MIT
