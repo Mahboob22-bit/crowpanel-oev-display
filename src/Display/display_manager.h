@@ -12,7 +12,8 @@ enum DisplayEvent {
     EVENT_INIT,
     EVENT_UPDATE,
     EVENT_WIFI_CONNECTED,
-    EVENT_WIFI_LOST
+    EVENT_WIFI_LOST,
+    EVENT_INTERNET_OK
 };
 
 // Display Manager Class

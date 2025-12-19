@@ -2,7 +2,7 @@
 #include "../Logger/Logger.h"
 
 WifiManager::WifiManager() 
-    : currentState(WIFI_DISCONNECTED), lastCheckTime(0), connectionStartTime(0), taskHandle(NULL), eventQueue(NULL) {}
+    : currentState(WIFI_DISCONNECTED), lastCheckTime(0), connectionStartTime(0), internetTested(false), taskHandle(NULL), eventQueue(NULL) {}
 
 void WifiManager::begin(const char* ssid, const char* password, QueueHandle_t queue) {
     this->eventQueue = queue;
@@ -68,6 +68,7 @@ void WifiManager::connect(const char* ssid, const char* password) {
     WiFi.begin(ssid, password);
     currentState = WIFI_CONNECTING;
     connectionStartTime = millis();
+    internetTested = false;
 }
 
 void WifiManager::update() {
@@ -99,11 +100,41 @@ void WifiManager::update() {
                 Logger::error("WIFI", "Connection lost!");
                 WiFi.disconnect();
                 lastCheckTime = millis();
+            } else {
+                // Internet Check durchführen, falls noch nicht geschehen
+                if (!internetTested) {
+                    checkInternet();
+                }
             }
             break;
             
         case WIFI_AP_MODE:
             break;
+    }
+}
+
+void WifiManager::checkInternet() {
+    internetTested = true; 
+    
+    Logger::info("WIFI", "Testing Internet connection...");
+    
+    HTTPClient http;
+    // Wir nutzen google.com als Test-Target. 
+    // http:// (ohne S) spart SSL Overhead und Zertifikats-Stress für diesen einfachen Check
+    if (http.begin("http://www.google.com")) {
+        int httpCode = http.GET();
+        if (httpCode > 0) {
+            Logger::printf("WIFI", "Internet Check: OK (Code %d)", httpCode);
+            if (eventQueue) {
+                DisplayEvent event = EVENT_INTERNET_OK;
+                xQueueSend(eventQueue, &event, portMAX_DELAY);
+            }
+        } else {
+             Logger::printf("WIFI", "Internet Check: Failed (Error: %s)", http.errorToString(httpCode).c_str());
+        }
+        http.end();
+    } else {
+        Logger::error("WIFI", "Unable to connect to test URL");
     }
 }
 

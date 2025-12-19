@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include "../Display/display_manager.h" // Für DisplayEvent Enum
 
 enum WifiState {
@@ -28,10 +29,12 @@ private:
     void init();
     void update();
     void connect(const char* ssid, const char* password);
+    void checkInternet();
 
     WifiState currentState;
     unsigned long lastCheckTime;
     unsigned long connectionStartTime;
+    bool internetTested;
     
     String _ssid;
     String _password;

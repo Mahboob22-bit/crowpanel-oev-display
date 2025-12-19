@@ -142,6 +142,9 @@ void DisplayManager::drawUI(DisplayEvent event) {
         case EVENT_WIFI_LOST:
             display->println("WIFI LOST");
             break;
+        case EVENT_INTERNET_OK:
+            display->println("INTERNET OK!");
+            break;
         default:
             display->println("UNKNOWN");
     }
