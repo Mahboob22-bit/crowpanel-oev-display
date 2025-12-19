@@ -1,5 +1,6 @@
 #include "display_manager.h"
 #include "crowpanel_pins.h"
+#include "../Logger/Logger.h"
 #include <Fonts/FreeMonoBold12pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 
@@ -12,7 +13,7 @@ bool DisplayManager::init() {
     digitalWrite(EPD_PWR_PIN, HIGH);
     delay(100);
 
-    Serial.println("[DISPLAY] Initializing E-Paper Display...");
+    Logger::info("DISPLAY", "Initializing E-Paper Display...");
 
     // Display initialisieren
     display->init(115200, true, 2, false); // initial, reset, delay, pulldown
@@ -20,7 +21,7 @@ bool DisplayManager::init() {
     display->setTextColor(GxEPD_BLACK);
 
     initialized = true;
-    Serial.println("[DISPLAY] Initialization successful!");
+    Logger::info("DISPLAY", "Initialization successful!");
 
     return true;
 }
@@ -30,7 +31,7 @@ void DisplayManager::hibernate() {
 
     display->hibernate();
     digitalWrite(EPD_PWR_PIN, LOW);
-    Serial.println("[DISPLAY] Hibernating...");
+    Logger::info("DISPLAY", "Hibernating...");
 }
 
 void DisplayManager::wakeup() {
@@ -38,18 +39,18 @@ void DisplayManager::wakeup() {
 
     digitalWrite(EPD_PWR_PIN, HIGH);
     delay(10);
-    Serial.println("[DISPLAY] Waking up...");
+    Logger::info("DISPLAY", "Waking up...");
 }
 
 void DisplayManager::update(DisplayEvent event) {
     if (!initialized) {
-        Serial.println("[DISPLAY] ERROR: Not initialized!");
+        Logger::error("DISPLAY", "Not initialized!");
         return;
     }
 
     wakeup();
 
-    Serial.printf("[DISPLAY] Updating (Event: %d, Count: %d)...\n", event, updateCounter);
+    Logger::printf("DISPLAY", "Updating (Event: %d, Count: %d)...", event, updateCounter);
 
     display->setFullWindow();
     display->firstPage();
@@ -59,7 +60,7 @@ void DisplayManager::update(DisplayEvent event) {
 
     updateCounter++;
 
-    Serial.println("[DISPLAY] Update complete!");
+    Logger::info("DISPLAY", "Update complete!");
 
     // Nach Update wieder in Hibernate
     hibernate();

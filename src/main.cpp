@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <GxEPD2_BW.h>
 #include "crowpanel_pins.h"
-#include "display_manager.h"
+#include "Display/display_manager.h"
+#include "Logger/Logger.h"
 
 // Display initialisieren (GYE042A87 für CrowPanel 4.2")
 GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>
@@ -12,7 +13,7 @@ DisplayManager displayManager(&display);
 
 // FreeRTOS Handles
 TaskHandle_t TaskDisplay;
-TaskHandle_t TaskSerial;
+TaskHandle_t TaskSerial; // Name behalten, aber Code nutzt Logger
 QueueHandle_t displayEventQueue;
 
 // Interrupt Flags (volatile für ISR)
@@ -55,7 +56,7 @@ void TaskDisplayCode(void *pvParameters) {
 
     // Display initialisieren
     if (!displayManager.init()) {
-        Serial.println("[ERROR] Display initialization failed!");
+        Logger::error("TASK_DISPLAY", "Display initialization failed!");
         vTaskDelete(NULL);
         return;
     }
@@ -67,7 +68,7 @@ void TaskDisplayCode(void *pvParameters) {
     for(;;) {
         // Warte auf Events aus der Queue (blocking)
         if (xQueueReceive(displayEventQueue, &event, portMAX_DELAY) == pdTRUE) {
-            Serial.printf("[TASK] Display event received: %d\n", event);
+            Logger::printf("TASK_DISPLAY", "Display event received: %d", event);
             displayManager.update(event);
         }
     }
@@ -79,7 +80,7 @@ void TaskButtonMonitorCode(void *pvParameters) {
         // Check button flags
         if (menuPressed) {
             menuPressed = false;
-            Serial.println("[BUTTON] Menu pressed!");
+            Logger::info("BUTTON", "Menu pressed!");
 
             DisplayEvent event = EVENT_BUTTON_MENU;
             xQueueSend(displayEventQueue, &event, portMAX_DELAY);
@@ -87,7 +88,7 @@ void TaskButtonMonitorCode(void *pvParameters) {
 
         if (exitPressed) {
             exitPressed = false;
-            Serial.println("[BUTTON] Exit pressed!");
+            Logger::info("BUTTON", "Exit pressed!");
 
             DisplayEvent event = EVENT_BUTTON_EXIT;
             xQueueSend(displayEventQueue, &event, portMAX_DELAY);
@@ -95,7 +96,7 @@ void TaskButtonMonitorCode(void *pvParameters) {
 
         if (rotaryPressed) {
             rotaryPressed = false;
-            Serial.println("[BUTTON] Rotary pressed!");
+            Logger::info("BUTTON", "Rotary pressed!");
 
             DisplayEvent event = EVENT_BUTTON_ROTARY;
             xQueueSend(displayEventQueue, &event, portMAX_DELAY);
@@ -105,10 +106,10 @@ void TaskButtonMonitorCode(void *pvParameters) {
     }
 }
 
-// Serial Monitoring Task
-void TaskSerialCode(void *pvParameters) {
+// System Monitoring Task
+void TaskSystemMonitorCode(void *pvParameters) {
     for(;;) {
-        Serial.printf("[SYSTEM] Core %d | Heap: %d KB | Stack: %d bytes\n",
+        Logger::printf("SYSTEM", "Core %d | Heap: %d KB | Stack: %d bytes",
                      xPortGetCoreID(),
                      ESP.getFreeHeap() / 1024,
                      uxTaskGetStackHighWaterMark(NULL));
@@ -118,22 +119,22 @@ void TaskSerialCode(void *pvParameters) {
 }
 
 void setup() {
-    Serial.begin(115200);
+    Logger::init(115200);
     delay(2000);
 
-    Serial.println("\n\n====================================");
-    Serial.println("   CrowPanel Swiss Transport Display");
-    Serial.println("====================================\n");
+    Logger::info("SETUP", "\n\n====================================");
+    Logger::info("SETUP", "   CrowPanel Swiss Transport Display");
+    Logger::info("SETUP", "====================================\n");
 
     // Chip Info
-    Serial.printf("Chip: ESP32-S3\n");
-    Serial.printf("Cores: %d\n", ESP.getChipCores());
-    Serial.printf("CPU Freq: %d MHz\n", ESP.getCpuFreqMHz());
-    Serial.printf("Flash: %d MB\n", ESP.getFlashChipSize() / (1024 * 1024));
-    Serial.printf("PSRAM: %d KB\n\n", ESP.getPsramSize() / 1024);
+    Logger::printf("SETUP", "Chip: ESP32-S3");
+    Logger::printf("SETUP", "Cores: %d", ESP.getChipCores());
+    Logger::printf("SETUP", "CPU Freq: %d MHz", ESP.getCpuFreqMHz());
+    Logger::printf("SETUP", "Flash: %d MB", ESP.getFlashChipSize() / (1024 * 1024));
+    Logger::printf("SETUP", "PSRAM: %d KB\n", ESP.getPsramSize() / 1024);
 
     // Button Setup mit Interrupts
-    Serial.println("[SETUP] Configuring buttons...");
+    Logger::info("SETUP", "Configuring buttons...");
     pinMode(BTN_MENU, INPUT_PULLUP);
     pinMode(BTN_EXIT, INPUT_PULLUP);
     pinMode(BTN_ROTARY_SW, INPUT_PULLUP);
@@ -142,18 +143,18 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(BTN_EXIT), handleExitButton, FALLING);
     attachInterrupt(digitalPinToInterrupt(BTN_ROTARY_SW), handleRotaryButton, FALLING);
 
-    Serial.println("[SETUP] Buttons configured!");
+    Logger::info("SETUP", "Buttons configured!");
 
     // Event Queue erstellen (max 10 Events)
     displayEventQueue = xQueueCreate(10, sizeof(DisplayEvent));
     if (displayEventQueue == NULL) {
-        Serial.println("[ERROR] Failed to create event queue!");
+        Logger::error("SETUP", "Failed to create event queue!");
         return;
     }
-    Serial.println("[SETUP] Event queue created!");
+    Logger::info("SETUP", "Event queue created!");
 
     // FreeRTOS Tasks erstellen
-    Serial.println("[SETUP] Creating tasks...");
+    Logger::info("SETUP", "Creating tasks...");
 
     xTaskCreatePinnedToCore(
         TaskDisplayCode,
@@ -176,8 +177,8 @@ void setup() {
     );
 
     xTaskCreatePinnedToCore(
-        TaskSerialCode,
-        "SerialTask",
+        TaskSystemMonitorCode,
+        "SystemTask",
         4096,
         NULL,
         1,                 // Niedrigere Priorität
@@ -185,10 +186,10 @@ void setup() {
         1                  // Core 1
     );
 
-    Serial.println("[SETUP] Tasks created successfully!\n");
-    Serial.println("====================================");
-    Serial.println("System ready! Press buttons to update display.");
-    Serial.println("====================================\n");
+    Logger::info("SETUP", "Tasks created successfully!\n");
+    Logger::info("SETUP", "====================================");
+    Logger::info("SETUP", "System ready! Press buttons to update display.");
+    Logger::info("SETUP", "====================================\n");
 }
 
 void loop() {
