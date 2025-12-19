@@ -66,6 +66,20 @@ make clean
 make compiledb
 ```
 
+### Konfiguration (Secrets)
+
+Erstelle eine Datei `include/secrets.h` (basierend auf `secrets.example.h` falls vorhanden), um deine WLAN-Zugangsdaten einzutragen. Diese Datei wird von Git ignoriert.
+
+```cpp
+#ifndef SECRETS_H
+#define SECRETS_H
+
+#define WIFI_SSID_SECRET "DeinWLAN"
+#define WIFI_PASSWORD_SECRET "DeinPasswort"
+
+#endif // SECRETS_H
+```
+
 ### Erste Einrichtung (Geplant)
 1. Nach dem Start spannt das Gerät ein WLAN auf: `CrowPanel-OEV`
 2. Verbinden und `http://192.168.4.1` aufrufen

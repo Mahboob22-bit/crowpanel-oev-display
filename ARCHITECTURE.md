@@ -12,11 +12,13 @@ Die Firmware ist in funktionale Module unterteilt. Jedes Modul kapselt seine Log
 
 | Modul | Verantwortung | Interaktion |
 |-------|---------------|-------------|
-| **WifiModule** | Verwaltet WLAN-Verbindung (Station Mode) und Access Point (AP Mode). Reconnect-Logik. | Meldet: `EVENT_WIFI_CONNECTED`, `EVENT_WIFI_LOST`. |
+| **WifiManager** | Verwaltet WLAN-Verbindung (Station Mode) und Access Point (AP Mode). Reconnect-Logik. | Meldet: `EVENT_WIFI_CONNECTED`, `EVENT_WIFI_LOST`. |
+| **InputManager** | Verwaltet Buttons (Menu, Exit, Rotary). Entprellt Signale (Debounce) und feuert Events. | Meldet: `EVENT_BUTTON_MENU`, `EVENT_BUTTON_EXIT`, `EVENT_BUTTON_ROTARY`. |
+| **SystemMonitor** | Überwacht Systemressourcen (Heap, Stack, Uptime) und loggt diese periodisch. | Loggt via `Logger`. |
 | **TimeModule** | Synchronisiert Systemzeit via NTP. | Meldet: `EVENT_TIME_SYNCED`. Stellt `getLocalTime()` bereit. |
 | **WebConfigModule** | Startet Webserver. Stellt REST-API bereit. Liefert Frontend-Files aus. | Liest/Schreibt: `ConfigStore`. Triggered: `EVENT_CONFIG_CHANGED`. |
 | **TransportModule** | Fragt periodisch (oder bei Event) die Transport-API ab. Parst JSON. | Trigger: Timer (30s). Meldet: `EVENT_DATA_NEW`, `EVENT_DATA_ERROR`. Liest: `ConfigStore`. |
-| **DisplayModule** | Verwaltet E-Paper Hardware. Zeichnet UI basierend auf Status. | Hört auf: `EVENT_DATA_NEW`, `EVENT_DATA_ERROR`, `EVENT_WIFI_...`. Verwaltet Power-Modes. |
+| **DisplayManager** | Verwaltet E-Paper Hardware. Zeichnet UI basierend auf Status. | Hört auf: `EVENT_DATA_NEW`, `EVENT_DATA_ERROR`, `EVENT_WIFI_...`. Verwaltet Power-Modes. |
 | **ConfigStore** | Persistente Speicherung (NVS/Preferences). | Wird von allen Modulen gelesen. Geschrieben von `WebConfigModule`. |
 
 ### 2.2 Datenfluss & Kommunikation
@@ -29,7 +31,8 @@ graph TD
     EventQ{Event Queue}
 
     %% Modules
-    Wifi[WifiModule] -->|Wifi Status| EventQ
+    Wifi[WifiManager] -->|Wifi Status| EventQ
+    Input[InputManager] -->|Button Press| EventQ
     Web[WebConfigModule] -->|Config Changed| EventQ
     Time[TimeModule] -->|Time Synced| EventQ
     
@@ -37,7 +40,7 @@ graph TD
     EventQ -->|Trigger Update| Transport
     Transport -->|New Data / Error| EventQ
     
-    Display[DisplayModule]
+    Display[DisplayManager]
     EventQ -->|All Events| Display
 ```
 
