@@ -7,6 +7,7 @@
 #include "Wifi/WifiManager.h"
 #include "Input/InputManager.h"
 #include "System/SystemMonitor.h"
+#include "Transport/TransportModule.h"
 
 // Display Treiber Instanz (muss global oder langliebend sein) (GYE042A87 für CrowPanel 4.2")
 GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>
@@ -17,6 +18,7 @@ DisplayManager displayManager(&display);
 WifiManager wifiManager;
 InputManager inputManager;
 SystemMonitor systemMonitor;
+TransportModule transportModule;
 
 // Globale Event Queue
 QueueHandle_t displayEventQueue;
@@ -59,6 +61,10 @@ void setup() {
 
     // System Monitor
     systemMonitor.begin();
+
+    // Transport Module (Test)
+    transportModule.begin(displayEventQueue);
+
 
     Logger::info("SETUP", "All modules started!");
     Logger::info("SETUP", "====================================\n");
