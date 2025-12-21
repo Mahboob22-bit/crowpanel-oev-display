@@ -20,6 +20,9 @@ build:
 upload:
 	docker-compose run --rm platformio run -t upload
 
+uploadfs:
+	docker-compose run --rm platformio run -t uploadfs
+
 monitor:
 	docker-compose run --rm platformio device monitor
 

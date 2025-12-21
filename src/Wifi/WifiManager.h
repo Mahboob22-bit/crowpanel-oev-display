@@ -4,7 +4,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include "../Display/display_manager.h" // Für DisplayEvent Enum
+#include "../Display/display_manager.h"
+#include "../Core/ConfigStore.h"
 
 enum WifiState {
     WIFI_DISCONNECTED,
@@ -18,17 +19,18 @@ public:
     WifiManager();
     
     // Startet den Wifi-Task
-    void begin(const char* ssid, const char* password, QueueHandle_t eventQueue);
+    void begin(ConfigStore* configStore, QueueHandle_t eventQueue);
     
     WifiState getState();
+    String getIpAddress();
     
 private:
-    // Task Funktion (muss static sein für FreeRTOS)
     static void taskCode(void* pvParameters);
     
     void init();
     void update();
-    void connect(const char* ssid, const char* password);
+    void connect();
+    void startAP();
     void checkInternet();
 
     WifiState currentState;
@@ -36,14 +38,13 @@ private:
     unsigned long connectionStartTime;
     bool internetTested;
     
-    String _ssid;
-    String _password;
-    
+    ConfigStore* configStore;
     TaskHandle_t taskHandle;
     QueueHandle_t eventQueue;
     
-    const unsigned long CONNECTION_TIMEOUT = 10000; 
+    const unsigned long CONNECTION_TIMEOUT = 15000; 
     const unsigned long RECONNECT_INTERVAL = 30000; 
+    const char* AP_SSID = "CrowPanel-Setup";
 };
 
 #endif // WIFI_MANAGER_H

@@ -1,15 +1,16 @@
 #include <Arduino.h>
 #include <GxEPD2_BW.h>
 #include "crowpanel_pins.h"
-#include "secrets.h"
 #include "Display/display_manager.h"
 #include "Logger/Logger.h"
 #include "Wifi/WifiManager.h"
 #include "Input/InputManager.h"
 #include "System/SystemMonitor.h"
 #include "Transport/TransportModule.h"
+#include "Core/ConfigStore.h"
+#include "Web/WebConfigModule.h"
 
-// Display Treiber Instanz (muss global oder langliebend sein) (GYE042A87 für CrowPanel 4.2")
+// Display Treiber Instanz (GYE042A87 für CrowPanel 4.2")
 GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>
   display(GxEPD2_420_GYE042A87(EPD_CS_PIN, EPD_DC_PIN, EPD_RST_PIN, EPD_BUSY_PIN));
 
@@ -19,6 +20,8 @@ WifiManager wifiManager;
 InputManager inputManager;
 SystemMonitor systemMonitor;
 TransportModule transportModule;
+ConfigStore configStore;
+WebConfigModule webConfigModule;
 
 // Globale Event Queue
 QueueHandle_t displayEventQueue;
@@ -38,6 +41,9 @@ void setup() {
     Logger::printf("SETUP", "Flash: %d MB", ESP.getFlashChipSize() / (1024 * 1024));
     Logger::printf("SETUP", "PSRAM: %d KB\n", ESP.getPsramSize() / 1024);
 
+    // 0. Config Store
+    configStore.begin();
+
     // 1. Event Queue
     displayEventQueue = xQueueCreate(10, sizeof(DisplayEvent));
     if (displayEventQueue == NULL) {
@@ -56,8 +62,10 @@ void setup() {
     displayManager.begin(displayEventQueue);
 
     // Wifi
-    // Nutzt WIFI_SSID_SECRET aus secrets.h
-    wifiManager.begin(WIFI_SSID_SECRET, WIFI_PASSWORD_SECRET, displayEventQueue);
+    wifiManager.begin(&configStore, displayEventQueue);
+
+    // Web Config
+    webConfigModule.begin(&configStore, &wifiManager);
 
     // System Monitor
     systemMonitor.begin();

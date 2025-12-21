@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowPanel Setup</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>CrowPanel ÖV-Display</h1>
+        
+        <div id="status-panel" class="panel">
+            <h2>Status</h2>
+            <div id="status-content">Lade...</div>
+        </div>
+
+        <div class="panel">
+            <h2>WLAN Konfiguration</h2>
+            <button id="scan-btn" onclick="scanWifi()">WLANs suchen</button>
+            <div id="wifi-list"></div>
+            
+            <form id="config-form">
+                <div class="form-group">
+                    <label>SSID:</label>
+                    <input type="text" id="ssid" name="ssid" required>
+                </div>
+                <div class="form-group">
+                    <label>Passwort:</label>
+                    <input type="password" id="password" name="password">
+                </div>
+                
+                <h2>ÖV Daten</h2>
+                <div class="form-group">
+                    <label>API Key (opentransportdata.swiss):</label>
+                    <input type="text" id="apikey" name="apikey">
+                </div>
+                
+                <div class="form-group">
+                    <label>Haltestelle Name:</label>
+                    <input type="text" id="st_name" name="station_name">
+                </div>
+                <div class="form-group">
+                    <label>Haltestelle ID:</label>
+                    <input type="text" id="st_id" name="station_id">
+                    <small><a href="https://transport.opendata.ch/docs.html#stationboard" target="_blank">ID suchen</a></small>
+                </div>
+
+                <h3>Linie 1</h3>
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="l1_name" name="l1_name">
+                </div>
+                <div class="form-group">
+                    <label>Richtung:</label>
+                    <input type="text" id="l1_dir" name="l1_dir">
+                </div>
+
+                <h3>Linie 2</h3>
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="l2_name" name="l2_name">
+                </div>
+                <div class="form-group">
+                    <label>Richtung:</label>
+                    <input type="text" id="l2_dir" name="l2_dir">
+                </div>
+
+                <button type="submit" class="primary-btn">Speichern & Neustart</button>
+            </form>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
+

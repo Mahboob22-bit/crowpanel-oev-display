@@ -13,7 +13,15 @@ enum DisplayEvent {
     EVENT_UPDATE,
     EVENT_WIFI_CONNECTED,
     EVENT_WIFI_LOST,
+    EVENT_WIFI_AP_MODE,
     EVENT_INTERNET_OK
+};
+
+enum DisplayState {
+    STATE_BOOT,
+    STATE_SETUP,
+    STATE_DASHBOARD,
+    STATE_ERROR
 };
 
 // Display Manager Class
@@ -37,8 +45,11 @@ private:
     uint32_t updateCounter;
     TaskHandle_t taskHandle;
     QueueHandle_t eventQueue;
+    DisplayState currentState;
 
     void drawUI(DisplayEvent event);
+    void drawSetupScreen();
+    void drawDashboard(DisplayEvent event);
 };
 
 #endif // DISPLAY_MANAGER_H

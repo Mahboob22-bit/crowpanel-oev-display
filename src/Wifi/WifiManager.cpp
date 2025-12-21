@@ -2,21 +2,20 @@
 #include "../Logger/Logger.h"
 
 WifiManager::WifiManager() 
-    : currentState(WIFI_DISCONNECTED), lastCheckTime(0), connectionStartTime(0), internetTested(false), taskHandle(NULL), eventQueue(NULL) {}
+    : currentState(WIFI_DISCONNECTED), lastCheckTime(0), connectionStartTime(0), internetTested(false), configStore(NULL), taskHandle(NULL), eventQueue(NULL) {}
 
-void WifiManager::begin(const char* ssid, const char* password, QueueHandle_t queue) {
+void WifiManager::begin(ConfigStore* config, QueueHandle_t queue) {
+    this->configStore = config;
     this->eventQueue = queue;
-    this->_ssid = ssid;
-    this->_password = password;
 
     xTaskCreatePinnedToCore(
         taskCode,
         "WifiTask",
         4096,
-        this,              // "this" als Parameter übergeben
-        1,                 // Normale Priorität
+        this,
+        1,
         &taskHandle,
-        1                  // Core 1
+        1
     );
 }
 
@@ -24,7 +23,14 @@ void WifiManager::taskCode(void* pvParameters) {
     WifiManager* instance = (WifiManager*)pvParameters;
     
     instance->init();
-    instance->connect(instance->_ssid.c_str(), instance->_password.c_str());
+    
+    // Check if we have credentials
+    if (instance->configStore->hasWifiConfig()) {
+        instance->connect();
+    } else {
+        Logger::info("TASK_WIFI", "No Wifi config found -> Starting AP");
+        instance->startAP();
+    }
     
     WifiState lastState = WIFI_DISCONNECTED;
 
@@ -33,12 +39,17 @@ void WifiManager::taskCode(void* pvParameters) {
         
         WifiState currentState = instance->getState();
         
-        // Statusänderung erkennen und an Display melden
         if (currentState != lastState) {
              if (currentState == WIFI_CONNECTED) {
                  Logger::info("TASK_WIFI", "Wifi connected -> Sending event");
                  if (instance->eventQueue != NULL) {
                      DisplayEvent event = EVENT_WIFI_CONNECTED;
+                     xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
+                 }
+             } else if (currentState == WIFI_AP_MODE) {
+                 Logger::info("TASK_WIFI", "AP Mode started -> Sending event");
+                 if (instance->eventQueue != NULL) {
+                     DisplayEvent event = EVENT_WIFI_AP_MODE;
                      xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
                  }
              } else if (lastState == WIFI_CONNECTED && currentState == WIFI_DISCONNECTED) {
@@ -51,7 +62,7 @@ void WifiManager::taskCode(void* pvParameters) {
              lastState = currentState;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100)); // 100ms polling
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
@@ -59,24 +70,41 @@ void WifiManager::init() {
     Logger::info("WIFI", "Initializing Wifi Manager...");
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-    Logger::info("WIFI", "Wifi initialized in Station Mode");
 }
 
-void WifiManager::connect(const char* ssid, const char* password) {
-    Logger::printf("WIFI", "Connecting to %s...", ssid);
+void WifiManager::connect() {
+    String ssid = configStore->getWifiSSID();
+    String password = configStore->getWifiPassword();
+
+    Logger::printf("WIFI", "Connecting to %s...", ssid.c_str());
     
-    WiFi.begin(ssid, password);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid.c_str(), password.c_str());
+    
     currentState = WIFI_CONNECTING;
     connectionStartTime = millis();
     internetTested = false;
 }
 
+void WifiManager::startAP() {
+    Logger::info("WIFI", "Starting Access Point...");
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(AP_SSID);
+    
+    currentState = WIFI_AP_MODE;
+    
+    IPAddress IP = WiFi.softAPIP();
+    Logger::printf("WIFI", "AP Started: %s", AP_SSID);
+    Logger::printf("WIFI", "AP IP: %s", IP.toString().c_str());
+}
+
 void WifiManager::update() {
     switch (currentState) {
         case WIFI_DISCONNECTED:
-            if (_ssid.length() > 0 && (millis() - lastCheckTime > RECONNECT_INTERVAL)) {
+            // Auto-reconnect nur wenn Config da ist
+            if (configStore->hasWifiConfig() && (millis() - lastCheckTime > RECONNECT_INTERVAL)) {
                 Logger::info("WIFI", "Auto-reconnecting...");
-                connect(_ssid.c_str(), _password.c_str());
+                connect();
                 lastCheckTime = millis();
             }
             break;
@@ -87,9 +115,8 @@ void WifiManager::update() {
                 Logger::info("WIFI", "Connected successfully!");
                 Logger::printf("WIFI", "IP Address: %s", WiFi.localIP().toString().c_str());
             } else if (millis() - connectionStartTime > CONNECTION_TIMEOUT) {
-                currentState = WIFI_DISCONNECTED;
-                Logger::error("WIFI", "Connection timed out!");
-                WiFi.disconnect();
+                Logger::error("WIFI", "Connection timed out -> Switching to AP Mode");
+                startAP(); // Fallback to AP
                 lastCheckTime = millis();
             }
             break;
@@ -101,7 +128,6 @@ void WifiManager::update() {
                 WiFi.disconnect();
                 lastCheckTime = millis();
             } else {
-                // Internet Check durchführen, falls noch nicht geschehen
                 if (!internetTested) {
                     checkInternet();
                 }
@@ -109,18 +135,17 @@ void WifiManager::update() {
             break;
             
         case WIFI_AP_MODE:
+            // Im AP Mode prüfen wir, ob wir vielleicht neue Config haben (z.B. durch User Eingabe via Web)
+            // Das WebConfigModule könnte einen Reconnect triggern, indem es den State resetet oder restart called.
+            // Vorerst bleiben wir im AP Mode.
             break;
     }
 }
 
 void WifiManager::checkInternet() {
     internetTested = true; 
-    
     Logger::info("WIFI", "Testing Internet connection...");
-    
     HTTPClient http;
-    // Wir nutzen google.com als Test-Target. 
-    // http:// (ohne S) spart SSL Overhead und Zertifikats-Stress für diesen einfachen Check
     if (http.begin("http://www.google.com")) {
         int httpCode = http.GET();
         if (httpCode > 0) {
@@ -140,4 +165,12 @@ void WifiManager::checkInternet() {
 
 WifiState WifiManager::getState() {
     return currentState;
+}
+
+String WifiManager::getIpAddress() {
+    if (currentState == WIFI_AP_MODE) {
+        return WiFi.softAPIP().toString();
+    } else {
+        return WiFi.localIP().toString();
+    }
 }
