@@ -3,15 +3,18 @@
 
 #include <Arduino.h>
 #include "../Display/display_manager.h" // Für Events
+#include "../Core/ConfigStore.h"
 
 class InputManager {
 public:
     InputManager();
-    void begin(QueueHandle_t eventQueue);
+    void begin(QueueHandle_t eventQueue, ConfigStore* configStore);
 
 private:
     static void taskCode(void* pvParameters);
     
+    ConfigStore* configStore;
+
     // ISRs
     static void IRAM_ATTR handleMenuButton();
     static void IRAM_ATTR handleExitButton();

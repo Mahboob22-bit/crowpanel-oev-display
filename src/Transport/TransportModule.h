@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <vector>
 #include "TransportTypes.h"
+#include "../Core/ConfigStore.h"
 
 // Events (vorläufig hier definiert, sollten in eine zentrale Event-Datei)
 #define EVENT_DATA_NEW "DATA_NEW"
@@ -13,17 +14,18 @@ class TransportModule {
 public:
     TransportModule();
     
-    void begin(QueueHandle_t eventQueue);
+    void begin(QueueHandle_t eventQueue, ConfigStore* configStore);
     
-    void setStationId(const String& id);
-    void setApiKey(const String& key);
+    // Config wird jetzt intern aus dem Store geholt
+    void updateConfig();
     
-    // Gibt die letzten geladenen Abfahrten zurück (Thread-safe Access nötig!)
     std::vector<Departure> getDepartures();
 
 private:
     static void taskCode(void* pvParameters);
-
+    
+    ConfigStore* configStore;
+    
     String _stationId;
     String _apiKey;
     unsigned long _updateInterval; // ms

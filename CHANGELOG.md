@@ -1,20 +1,18 @@
 # Changelog
 
-## [Unreleased]
-
+## [1.1.0] - 2024-12-21
 ### Added
-- **WifiManager**: Initial implementation with Station Mode and Reconnect logic.
-- **InputManager**: Encapsulated button handling (Menu, Exit, Rotary) with interrupts and debouncing.
-- **SystemMonitor**: Periodic logging of system stats (Heap, Stack, CPU).
-- **Logger**: Centralized logging module with tags and levels, replacing raw `Serial.print`.
-- **Secrets Management**: `secrets.h` introduced for sensitive credentials (gitignored).
+- **Web Interface:** Vollständige Konfiguration via Web-Browser.
+- **Access Point Mode:** Startet automatisch `CrowPanel-Setup` AP, wenn keine Verbindung möglich ist.
+- **mDNS Support:** Erreichbar unter `http://crowpanel.local`.
+- **Factory Reset:** 
+  - Via Web-Interface Button.
+  - Via Hardware Button: MENU-Taste 3 Sekunden gedrückt halten.
+- **Display Feedback:**
+  - Zeigt IP-Adresse und Hostname im Dashboard an.
+  - Zeigt Setup-Anweisungen im AP-Modus an.
 
-### Changed
-- **Refactoring**: 
-    - Moved `DisplayManager` to its own module `src/Display`.
-    - Moved task logic from `main.cpp` into respective modules (`begin()` starts the task).
-    - `main.cpp` is now minimal and only orchestrates module initialization.
-- **Events**: Extended `DisplayEvent` with Wifi status (`EVENT_WIFI_CONNECTED`, `EVENT_WIFI_LOST`).
-
-### Fixed
-- Code structure modularized for better maintainability and testability.
+## [1.0.0] - 2024-12-10
+### Initiale Version
+- Anzeige von ÖV-Daten auf E-Paper.
+- Modulare Architektur mit FreeRTOS.

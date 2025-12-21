@@ -1,3 +1,4 @@
+#include <WiFi.h>
 #include "display_manager.h"
 #include "crowpanel_pins.h"
 #include "../Logger/Logger.h"
@@ -193,9 +194,16 @@ void DisplayManager::drawDashboard(DisplayEvent event) {
     display->print(ESP.getFreeHeap() / 1024);
     display->println(" KB");
     
+    // IP Address
+    display->setCursor(10, 190);
+    display->print("IP: ");
+    display->println(WiFi.localIP());
+    display->setCursor(10, 205);
+    display->println("http://crowpanel.local");
+
     // Status
     display->setFont(&FreeMonoBold12pt7b);
-    display->setCursor(10, 220);
+    display->setCursor(10, 240);
     
     if (currentState == STATE_DASHBOARD) {
         display->println("Online");

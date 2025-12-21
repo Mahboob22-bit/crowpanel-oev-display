@@ -56,7 +56,7 @@ void setup() {
     Logger::info("SETUP", "Starting modules...");
 
     // Input (Buttons)
-    inputManager.begin(displayEventQueue);
+    inputManager.begin(displayEventQueue, &configStore);
 
     // Display
     displayManager.begin(displayEventQueue);
@@ -71,7 +71,7 @@ void setup() {
     systemMonitor.begin();
 
     // Transport Module (Test)
-    transportModule.begin(displayEventQueue);
+    transportModule.begin(displayEventQueue, &configStore);
 
 
     Logger::info("SETUP", "All modules started!");

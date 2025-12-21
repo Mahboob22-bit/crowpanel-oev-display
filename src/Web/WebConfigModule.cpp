@@ -1,5 +1,6 @@
 #include "WebConfigModule.h"
 #include "../Logger/Logger.h"
+#include <ESPmDNS.h>
 
 WebConfigModule::WebConfigModule() : server(80), configStore(NULL), wifiManager(NULL) {}
 
@@ -15,6 +16,14 @@ void WebConfigModule::begin(ConfigStore* config, WifiManager* wifi) {
     setupRoutes();
     server.begin();
     Logger::info("WEB", "Web Server started");
+
+    // Start mDNS
+    if (MDNS.begin("crowpanel")) {
+        Logger::info("WEB", "mDNS responder started: http://crowpanel.local");
+        MDNS.addService("http", "tcp", 80);
+    } else {
+        Logger::error("WEB", "Error starting mDNS responder!");
+    }
 }
 
 void WebConfigModule::setupRoutes() {
@@ -40,6 +49,15 @@ void WebConfigModule::setupRoutes() {
             this->handleConfigSave(request, data, len, index, total);
         }
     );
+
+    // API: Factory Reset (POST)
+    server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        Logger::info("WEB", "Factory Reset requested via Web");
+        this->configStore->resetToFactory();
+        request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Resetting...\"}");
+        delay(1000);
+        ESP.restart();
+    });
     
     // CORS Headers für Entwicklung (optional, aber hilfreich)
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
@@ -131,4 +149,3 @@ void WebConfigModule::handleConfigSave(AsyncWebServerRequest *request, uint8_t *
     delay(1000);
     ESP.restart();
 }
-

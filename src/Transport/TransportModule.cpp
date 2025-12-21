@@ -2,7 +2,7 @@
 #include "OjpParser.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
-#include "secrets.h"
+#include "../Logger/Logger.h"
 
 // Endpoint für OJP 2.0
 const char* OJP_API_URL = "https://api.opentransportdata.swiss/ojp2020";
@@ -11,15 +11,19 @@ TransportModule::TransportModule()
     : _updateInterval(30000), // 30 Sekunden
       taskHandle(NULL),
       eventQueue(NULL),
-      _mutex(NULL)
+      _mutex(NULL),
+      configStore(NULL)
 {
     _mutex = xSemaphoreCreateMutex();
 }
 
-void TransportModule::begin(QueueHandle_t queue) {
+void TransportModule::begin(QueueHandle_t queue, ConfigStore* store) {
     eventQueue = queue;
-    setApiKey(OJP_API_KEY);
-    setStationId(TEST_STATION_ID);
+    configStore = store;
+    
+    // Initiale Config laden
+    updateConfig();
+    
     // Starte Task
     xTaskCreate(
         taskCode,          // Task Funktion
@@ -31,20 +35,19 @@ void TransportModule::begin(QueueHandle_t queue) {
     );
 }
 
-void TransportModule::setStationId(const String& id) {
-    if (_mutex) {
-        xSemaphoreTake(_mutex, portMAX_DELAY);
-        _stationId = id;
-        xSemaphoreGive(_mutex);
-    }
-}
-
-void TransportModule::setApiKey(const String& key) {
-    if (_mutex) {
-        xSemaphoreTake(_mutex, portMAX_DELAY);
-        _apiKey = key;
-        xSemaphoreGive(_mutex);
-    }
+void TransportModule::updateConfig() {
+    if (!configStore || !_mutex) return;
+    
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    
+    _apiKey = configStore->getApiKey();
+    StationConfig station = configStore->getStation();
+    _stationId = station.id;
+    
+    Logger::info("TRANSPORT", "Config updated from Store");
+    Logger::printf("TRANSPORT", "Station ID: %s", _stationId.c_str());
+    
+    xSemaphoreGive(_mutex);
 }
 
 std::vector<Departure> TransportModule::getDepartures() {
@@ -69,6 +72,10 @@ void TransportModule::taskCode(void* pvParameters) {
         // Warte bis zum nächsten Zyklus
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
         
+        // Config kann sich geändert haben, wir laden sie neu vor jedem Fetch
+        // (Effizienter wäre nur bei Änderung, aber für jetzt ok)
+        module->updateConfig();
+        
         // Prüfe Voraussetzungen
         bool ready = false;
         if (module->_mutex) {
@@ -79,6 +86,8 @@ void TransportModule::taskCode(void* pvParameters) {
         
         if (ready) {
              module->fetchData();
+        } else {
+             Logger::info("TRANSPORT", "Missing configuration (API Key or Station ID)");
         }
     }
 }
@@ -133,7 +142,7 @@ String TransportModule::buildRequestXml() {
 
 void TransportModule::fetchData() {
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Wifi not connected, skipping transport update");
+        Logger::info("TRANSPORT", "Wifi not connected, skipping update");
         return;
     }
 
@@ -157,17 +166,17 @@ void TransportModule::fetchData() {
             http.addHeader("Authorization", "Bearer " + key);
             
             String requestBody = buildRequestXml();
-            Serial.println("Sending OJP Request...");
+            Logger::info("TRANSPORT", "Sending OJP Request...");
             
             int httpCode = http.POST(requestBody);
             
             if (httpCode > 0) {
                 if (httpCode == HTTP_CODE_OK) {
                     String payload = http.getString();
-                    Serial.println("OJP Response received");
+                    Logger::info("TRANSPORT", "OJP Response received");
                     
                     std::vector<Departure> newDepartures = OjpParser::parseResponse(payload);
-                    Serial.printf("Parsed %d departures\n", newDepartures.size());
+                    Logger::printf("TRANSPORT", "Parsed %d departures", newDepartures.size());
                     
                     if (_mutex) {
                         xSemaphoreTake(_mutex, portMAX_DELAY);
@@ -177,14 +186,14 @@ void TransportModule::fetchData() {
                     
                     // TODO: Event feuern (EVENT_DATA_NEW)
                 } else {
-                    Serial.printf("HTTP Error: %d\n", httpCode);
+                    Logger::printf("TRANSPORT", "HTTP Error: %d", httpCode);
                     // 403 Forbidden -> API Key invalid or not active
                     if (httpCode == 403) {
-                         Serial.println("API Key invalid or not yet active. Please check your email/account.");
+                         Logger::error("TRANSPORT", "API Key invalid or not yet active. Please check your email/account.");
                     }
                 }
             } else {
-                Serial.printf("HTTP Connection failed: %s\n", http.errorToString(httpCode).c_str());
+                Logger::printf("TRANSPORT", "HTTP Connection failed: %s", http.errorToString(httpCode).c_str());
             }
             
             http.end();

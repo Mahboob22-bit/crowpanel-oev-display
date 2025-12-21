@@ -46,23 +46,19 @@ graph TD
 
 ## 3. Web Frontend Architektur
 
-Die Konfigurationsoberfläche ist eine leichtgewichtige Web-App (Preact oder Vanilla JS), die im Flash-Speicher des ESP32 (LittleFS) liegt.
+Die Konfigurationsoberfläche ist eine leichtgewichtige Web-App (Vanilla JS), die im Flash-Speicher des ESP32 (LittleFS) liegt.
 
 ### 3.1 Struktur
 
-*   **API Adapter:** Abstrahiert die REST-Calls zum ESP32 (`/api/config`, `/api/scan`, `/api/status`).
-*   **State Store:** Hält den aktuellen Zustand der UI (z.B. gefundene WLANs, aktuelle Konfiguration).
-*   **Router:** Einfaches Hash-Routing für Navigation.
-*   **Views:**
-    *   `SetupView`: WLAN-Scan und Verbindung.
-    *   `ConfigView`: Suche nach Haltestellen, Auswahl der Linien/Richtung.
-    *   `SystemView`: Statusanzeige, Logs, Reboot.
+*   **API Kommunikation:** Direkte `fetch` Calls an die REST-API (`/api/config`, `/api/scan`, `/api/status`, `/api/reset`).
+*   **Logik:** `app.js` steuert den Ablauf.
+*   **Views:** Dynamische DOM-Manipulation in `index.html` basierend auf dem Status (AP-Mode vs. Connected).
 
 ## 4. Technologie-Stack
 
 *   **Firmware:** C++17, PlatformIO, Arduino Framework, FreeRTOS.
-*   **Libraries:** ArduinoJson (Parsing), GxEPD2 (Display), ESPAsyncWebServer (Web/API).
-*   **Frontend:** HTML5, CSS3, Modern JS (ES6+), evtl. Vite für Build-Prozess (produziert optimierte Assets für ESP32).
+*   **Libraries:** ArduinoJson (Parsing), GxEPD2 (Display), ESPAsyncWebServer (Web/API), LittleFS (Dateisystem).
+*   **Frontend:** HTML5, CSS3, Modern JS (ES6+). Keine Build-Tools notwendig.
 
 ## 5. Entwicklung neuer Module
 

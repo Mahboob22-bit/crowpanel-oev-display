@@ -9,10 +9,11 @@ volatile bool InputManager::rotaryPressed = false;
 unsigned long InputManager::lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
 
-InputManager::InputManager() : taskHandle(NULL), eventQueue(NULL) {}
+InputManager::InputManager() : taskHandle(NULL), eventQueue(NULL), configStore(NULL) {}
 
-void InputManager::begin(QueueHandle_t queue) {
+void InputManager::begin(QueueHandle_t queue, ConfigStore* config) {
     this->eventQueue = queue;
+    this->configStore = config;
 
     Logger::info("INPUT", "Configuring buttons...");
     pinMode(BTN_MENU, INPUT_PULLUP);
@@ -63,14 +64,39 @@ void IRAM_ATTR InputManager::handleRotaryButton() {
 void InputManager::taskCode(void* pvParameters) {
     InputManager* instance = (InputManager*)pvParameters;
     
+    // Für Long-Press Erkennung
+    unsigned long menuPressStart = 0;
+    bool menuLongPressHandled = false;
+
     for(;;) {
-        if (menuPressed) {
-            menuPressed = false;
-            Logger::info("BUTTON", "Menu pressed!");
-            if (instance->eventQueue) {
-                DisplayEvent event = EVENT_BUTTON_MENU;
-                xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
+        // Menu Button Logic (Short & Long Press)
+        if (digitalRead(BTN_MENU) == LOW) { // Gedrückt gehalten
+            if (menuPressStart == 0) {
+                menuPressStart = millis();
+                menuLongPressHandled = false;
+            } else if (millis() - menuPressStart > 3000 && !menuLongPressHandled) { // 3 Sekunden
+                // Long Press -> Factory Reset
+                Logger::info("BUTTON", "Menu LONG PRESS -> Factory Reset!");
+                if (instance->configStore) {
+                    instance->configStore->resetToFactory();
+                    // Feedback Event? Vorerst Restart
+                    ESP.restart();
+                }
+                menuLongPressHandled = true;
             }
+        } else { // Losgelassen
+            if (menuPressStart != 0 && !menuLongPressHandled) {
+                // Short Press
+                if (millis() - menuPressStart > 50) { // Entprellung
+                     Logger::info("BUTTON", "Menu pressed!");
+                     if (instance->eventQueue) {
+                         DisplayEvent event = EVENT_BUTTON_MENU;
+                         xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
+                     }
+                }
+            }
+            menuPressStart = 0;
+            menuPressed = false; // Reset ISR Flag (wir nutzen hier Polling für LongPress)
         }
 
         if (exitPressed) {
