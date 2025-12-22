@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "../Logger/Logger.h"
+#include "../Display/display_manager.h" // For DisplayEvent enum
 
 // Endpoint für OJP 2.0
 const char* OJP_API_URL = "https://api.opentransportdata.swiss/ojp2020";
@@ -184,7 +185,11 @@ void TransportModule::fetchData() {
                         xSemaphoreGive(_mutex);
                     }
                     
-                    // TODO: Event feuern (EVENT_DATA_NEW)
+                    // Fire Event
+                    if (eventQueue) {
+                        DisplayEvent event = EVENT_DATA_AVAILABLE;
+                        xQueueSend(eventQueue, &event, 0);
+                    }
                 } else {
                     Logger::printf("TRANSPORT", "HTTP Error: %d", httpCode);
                     // 403 Forbidden -> API Key invalid or not active

@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 #include <GxEPD2_BW.h>
+#include <vector>
+#include <functional>
+#include "../Transport/TransportTypes.h"
 
 // Display Events
 enum DisplayEvent {
@@ -11,6 +14,7 @@ enum DisplayEvent {
     EVENT_BUTTON_ROTARY,
     EVENT_INIT,
     EVENT_UPDATE,
+    EVENT_DATA_AVAILABLE,
     EVENT_WIFI_CONNECTED,
     EVENT_WIFI_LOST,
     EVENT_WIFI_AP_MODE,
@@ -37,6 +41,14 @@ public:
     void wakeup();
     void update(DisplayEvent event);
 
+    // Data Setters
+    void setDepartures(const std::vector<Departure>& departures);
+    void setStationName(String name);
+    void setErrorMessage(String msg);
+    
+    using DataProvider = std::function<std::vector<Departure>()>;
+    void setDataProvider(DataProvider provider);
+
 private:
     static void taskCode(void* pvParameters);
     
@@ -47,9 +59,26 @@ private:
     QueueHandle_t eventQueue;
     DisplayState currentState;
 
+    // Data
+    std::vector<Departure> currentDepartures;
+    String stationName;
+    String errorMessage;
+    DataProvider dataProvider;
+
+    // Drawing Methods
     void drawUI(DisplayEvent event);
+    
+    // Screens
+    void drawBootScreen();
     void drawSetupScreen();
     void drawDashboard(DisplayEvent event);
+    void drawErrorScreen();
+
+    // Helpers
+    void drawHeader(String title, String rightText);
+    void drawFooter(String status);
+    void drawInvertedBadge(int x, int y, int w, int h, String text);
+    void drawDepartureRow(int y, const Departure& dep);
 };
 
 #endif // DISPLAY_MANAGER_H

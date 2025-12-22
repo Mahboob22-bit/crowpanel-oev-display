@@ -60,6 +60,19 @@ void setup() {
 
     // Display
     displayManager.begin(displayEventQueue);
+    
+    // Data Provider verknüpfen
+    displayManager.setDataProvider([]() -> std::vector<Departure> {
+        return transportModule.getDepartures();
+    });
+    
+    // Initialen Stationsnamen setzen
+    StationConfig station = configStore.getStation();
+    if (station.name.length() > 0) {
+        displayManager.setStationName(station.name);
+    } else {
+        displayManager.setStationName("Nicht konfiguriert");
+    }
 
     // Wifi
     wifiManager.begin(&configStore, displayEventQueue);

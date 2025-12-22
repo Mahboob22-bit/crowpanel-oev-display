@@ -7,7 +7,9 @@
 #include <Fonts/FreeSansBold9pt7b.h>
 
 DisplayManager::DisplayManager(GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>* disp)
-    : display(disp), initialized(false), updateCounter(0), taskHandle(NULL), eventQueue(NULL), currentState(STATE_BOOT) {}
+    : display(disp), initialized(false), updateCounter(0), taskHandle(NULL), eventQueue(NULL), currentState(STATE_BOOT) {
+    stationName = "Station";
+}
 
 void DisplayManager::begin(QueueHandle_t queue) {
     this->eventQueue = queue;
@@ -51,7 +53,7 @@ bool DisplayManager::init() {
     Logger::info("DISPLAY", "Initializing E-Paper Display...");
 
     display->init(115200, true, 2, false);
-    display->setRotation(1);
+    display->setRotation(0);
     display->setTextColor(GxEPD_BLACK);
 
     initialized = true;
@@ -76,10 +78,34 @@ void DisplayManager::wakeup() {
     Logger::info("DISPLAY", "Waking up...");
 }
 
+void DisplayManager::setDepartures(const std::vector<Departure>& departures) {
+    this->currentDepartures = departures;
+}
+
+void DisplayManager::setStationName(String name) {
+    this->stationName = name;
+}
+
+void DisplayManager::setErrorMessage(String msg) {
+    this->errorMessage = msg;
+    this->currentState = STATE_ERROR;
+}
+
+void DisplayManager::setDataProvider(DataProvider provider) {
+    this->dataProvider = provider;
+}
+
 void DisplayManager::update(DisplayEvent event) {
     if (!initialized) {
         Logger::error("DISPLAY", "Not initialized!");
         return;
+    }
+
+    // Handle Data Update
+    if (event == EVENT_DATA_AVAILABLE && dataProvider) {
+        Logger::info("DISPLAY", "Fetching new data from provider...");
+        currentDepartures = dataProvider();
+        currentState = STATE_DASHBOARD; // Switch to dashboard if we get data
     }
 
     // State Machine Transition
@@ -88,7 +114,17 @@ void DisplayManager::update(DisplayEvent event) {
             currentState = STATE_SETUP;
             break;
         case EVENT_WIFI_CONNECTED:
-            currentState = STATE_DASHBOARD;
+            // Don't force dashboard if we are already there or in error
+            if (currentState == STATE_BOOT || currentState == STATE_SETUP) {
+                currentState = STATE_DASHBOARD;
+            }
+            break;
+        case EVENT_WIFI_LOST:
+            currentState = STATE_ERROR;
+            errorMessage = "WLAN Verbindung verloren!";
+            break;
+        case EVENT_INIT:
+            currentState = STATE_BOOT;
             break;
         default:
             // Bleibe im aktuellen State
@@ -115,20 +151,42 @@ void DisplayManager::update(DisplayEvent event) {
 void DisplayManager::drawUI(DisplayEvent event) {
     display->fillScreen(GxEPD_WHITE);
 
-    if (currentState == STATE_SETUP) {
-        drawSetupScreen();
-    } else {
-        drawDashboard(event);
+    switch(currentState) {
+        case STATE_BOOT:
+            drawBootScreen();
+            break;
+        case STATE_SETUP:
+            drawSetupScreen();
+            break;
+        case STATE_ERROR:
+            drawErrorScreen();
+            break;
+        case STATE_DASHBOARD:
+        default:
+            drawDashboard(event);
+            break;
     }
 }
 
-void DisplayManager::drawSetupScreen() {
+void DisplayManager::drawBootScreen() {
     display->setFont(&FreeMonoBold12pt7b);
-    display->setCursor(10, 30);
-    display->println("Einrichtung erforderlich");
     
-    display->drawLine(0, 40, 400, 40, GxEPD_BLACK);
-    
+    int16_t tbx, tby; uint16_t tbw, tbh;
+    String title = "CROWPANEL OEV";
+    display->getTextBounds(title, 0, 0, &tbx, &tby, &tbw, &tbh);
+    display->setCursor((400 - tbw) / 2, 140);
+    display->println(title);
+
+    display->setFont(&FreeSans9pt7b);
+    String sub = "v1.0 - Starting...";
+    display->getTextBounds(sub, 0, 0, &tbx, &tby, &tbw, &tbh);
+    display->setCursor((400 - tbw) / 2, 170);
+    display->println(sub);
+}
+
+void DisplayManager::drawSetupScreen() {
+    drawHeader("SETUP ERFORDERLICH", "WiFi");
+
     display->setFont(&FreeSans9pt7b);
     display->setCursor(10, 80);
     display->println("1. Verbinde mit WLAN:");
@@ -152,67 +210,135 @@ void DisplayManager::drawSetupScreen() {
     display->println("Bildschirm zur Konfiguration.");
 }
 
+void DisplayManager::drawErrorScreen() {
+    display->drawRect(10, 10, 380, 280, GxEPD_BLACK);
+    
+    display->setFont(&FreeMonoBold12pt7b);
+    String title = "FEHLER";
+    int16_t tbx, tby; uint16_t tbw, tbh;
+    display->getTextBounds(title, 0, 0, &tbx, &tby, &tbw, &tbh);
+    display->setCursor((400 - tbw) / 2, 60);
+    display->print(title);
+
+    display->setFont(&FreeSans9pt7b);
+    
+    // Split message if too long (simple approach)
+    display->setCursor(30, 120);
+    display->println(errorMessage);
+    
+    display->setCursor(30, 200);
+    display->println("Versuche Neustart...");
+}
+
 void DisplayManager::drawDashboard(DisplayEvent event) {
     // Header
-    display->setFont(&FreeMonoBold12pt7b);
-    display->setCursor(10, 30);
-    display->println("CrowPanel OeV Display");
-
-    // Trennlinie
-    display->drawLine(0, 40, 400, 40, GxEPD_BLACK);
-
-    // Event Info
-    display->setFont(&FreeSans9pt7b);
-    display->setCursor(10, 65);
-    display->print("Letztes Event: ");
-
-    switch(event) {
-        case EVENT_BUTTON_MENU: display->println("MENU"); break;
-        case EVENT_BUTTON_EXIT: display->println("EXIT"); break;
-        case EVENT_BUTTON_ROTARY: display->println("ROTARY"); break;
-        case EVENT_INIT: display->println("INIT"); break;
-        case EVENT_UPDATE: display->println("UPDATE"); break;
-        case EVENT_WIFI_CONNECTED: display->println("WIFI CONNECTED"); break;
-        case EVENT_WIFI_LOST: display->println("WIFI LOST"); break;
-        case EVENT_INTERNET_OK: display->println("INTERNET OK!"); break;
-        default: display->println("UNKNOWN");
+    struct tm timeinfo;
+    char timeStr[6] = "00:00";
+    if(getLocalTime(&timeinfo)){
+        strftime(timeStr, 6, "%H:%M", &timeinfo);
     }
-
-    // Update Counter
-    display->setCursor(10, 90);
-    display->print("Update #");
-    display->println(updateCounter);
-
-    // System Info
-    display->setCursor(10, 115);
-    display->print("CPU: ");
-    display->print(ESP.getCpuFreqMHz());
-    display->println(" MHz");
-
-    display->setCursor(10, 140);
-    display->print("Free Heap: ");
-    display->print(ESP.getFreeHeap() / 1024);
-    display->println(" KB");
     
-    // IP Address
-    display->setCursor(10, 190);
-    display->print("IP: ");
-    display->println(WiFi.localIP());
-    display->setCursor(10, 205);
-    display->println("http://crowpanel.local");
+    drawHeader(stationName, String(timeStr));
 
-    // Status
-    display->setFont(&FreeMonoBold12pt7b);
-    display->setCursor(10, 240);
-    
-    if (currentState == STATE_DASHBOARD) {
-        display->println("Online");
+    // Departures
+    int y = 50; // Start Y position
+    if (currentDepartures.empty()) {
+        display->setFont(&FreeSans9pt7b);
+        display->setCursor(10, 100);
+        display->println("Keine Abfahrten verfuegbar...");
     } else {
-        display->println("Booting...");
+        for (const auto& dep : currentDepartures) {
+            if (y > 240) break; // Don't draw outside
+            drawDepartureRow(y, dep);
+            y += 55;
+        }
     }
 
     // Footer
+    String status;
+    if (event == EVENT_WIFI_LOST) {
+        status = "Offline / Verbindungsfehler";
+    } else {
+        char updateTimeStr[10];
+        strftime(updateTimeStr, 10, "%H:%M:%S", &timeinfo);
+        status = "Aktualisiert: " + String(updateTimeStr);
+    }
+    
+    drawFooter(status);
+}
+
+// --- Helpers ---
+
+void DisplayManager::drawHeader(String title, String rightText) {
+    // Left: Title
+    display->setFont(&FreeMonoBold12pt7b);
+    display->setCursor(5, 30);
+    display->print(title.substring(0, 15)); // Basic truncate
+
+    // Right: Text
+    display->setFont(&FreeSansBold9pt7b);
+    int16_t tbx, tby; uint16_t tbw, tbh;
+    display->getTextBounds(rightText, 0, 0, &tbx, &tby, &tbw, &tbh);
+    display->setCursor(400 - tbw - 5, 30);
+    display->print(rightText);
+
+    // Thick Line
+    display->fillRect(0, 40, 400, 3, GxEPD_BLACK);
+}
+
+void DisplayManager::drawFooter(String status) {
+    // Thin Line
+    display->drawLine(0, 275, 400, 275, GxEPD_BLACK);
+
     display->setFont(&FreeSans9pt7b);
-    display->setCursor(10, 285);
-    display->println("Taste druecken zum Aktualisieren");
+    display->setCursor(5, 295);
+    display->print(status);
+}
+
+void DisplayManager::drawInvertedBadge(int x, int y, int w, int h, String text) {
+    display->fillRect(x, y, w, h, GxEPD_BLACK);
+    display->setTextColor(GxEPD_WHITE);
+    
+    // Center text
+    display->setFont(&FreeSansBold9pt7b);
+    int16_t tbx, tby; uint16_t tbw, tbh;
+    display->getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
+    int textX = x + (w - tbw) / 2;
+    int textY = y + (h + tbh) / 2; // Approximate center
+
+    display->setCursor(textX, textY);
+    display->print(text);
+    display->setTextColor(GxEPD_BLACK); // Reset
+}
+
+void DisplayManager::drawDepartureRow(int y, const Departure& dep) {
+    // Line Badge
+    drawInvertedBadge(10, y + 5, 50, 40, dep.line);
+
+    // Destination
+    display->setFont(&FreeSansBold9pt7b);
+    display->setCursor(70, y + 30);
+    display->print(dep.direction.substring(0, 18)); // Truncate
+
+    // Time
+    // Calculate minutes difference
+    time_t now;
+    time(&now);
+    time_t depTime = dep.getEffectiveTime();
+    double diffSeconds = difftime(depTime, now);
+    int diffMin = (int)(diffSeconds / 60);
+
+    String timeStr;
+    if (diffMin <= 0) timeStr = "0'";
+    else if (diffMin > 60) timeStr = ">1h";
+    else timeStr = String(diffMin) + "'";
+
+    display->setFont(&FreeMonoBold12pt7b);
+    int16_t tbx, tby; uint16_t tbw, tbh;
+    display->getTextBounds(timeStr, 0, 0, &tbx, &tby, &tbw, &tbh);
+    display->setCursor(400 - tbw - 10, y + 30);
+    display->print(timeStr);
+
+    // Separator
+    display->drawLine(0, y + 50, 400, y + 50, GxEPD_BLACK);
 }
