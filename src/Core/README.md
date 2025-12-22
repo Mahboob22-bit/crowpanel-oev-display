@@ -12,7 +12,6 @@ Die `ConfigStore` Klasse verwaltet die persistente Speicherung von Konfiguration
 |-----|-----|--------------|
 | `ssid` | String | WLAN SSID |
 | `password` | String | WLAN Passwort |
-| `apikey` | String | OpenTransportData API Key |
 | `st_name` | String | Name der Haltestelle |
 | `st_id` | String | ID der Haltestelle (für API) |
 | `l1_name` | String | Name Linie 1 |
@@ -32,10 +31,6 @@ String getWifiSSID();
 String getWifiPassword();
 bool hasWifiConfig();
 
-// Transport
-void setApiKey(const String& apiKey);
-String getApiKey();
-
 // Station & Linien
 void setStation(const String& name, const String& id);
 StationConfig getStation();
@@ -47,4 +42,3 @@ LineConfig getLine1();
 // Reset
 void resetToFactory(); // Löscht alle Keys im Namespace
 ```
-

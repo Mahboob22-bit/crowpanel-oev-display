@@ -23,6 +23,13 @@ Vollständig konfigurierbar über ein Web-Interface (WLAN, Haltestelle, Linien).
 
 ## 🚀 Erste Inbetriebnahme
 
+### 1. API Key konfigurieren
+Erstelle die Datei `include/secrets.h` und trage deinen API Key ein:
+```cpp
+#define OJP_API_KEY "DEIN_API_KEY"
+```
+
+### 2. Flashen & Verbinden
 1.  Gerät mit Strom verbinden (USB).
 2.  Auf dem Display erscheint: **"Verbinde mit WLAN: CrowPanel-Setup"**.
 3.  Verbinde dein Handy oder Laptop mit diesem WLAN (Kein Passwort).
@@ -33,7 +40,7 @@ Vollständig konfigurierbar über ein Web-Interface (WLAN, Haltestelle, Linien).
 ### Konfiguration ändern
 
 Wenn das Gerät verbunden ist, zeigt es seine IP-Adresse und URL auf dem Display an (z.B. **http://crowpanel.local**).
-Öffne diese Adresse im Browser, um Haltestelle, Linien oder API-Key zu ändern.
+Öffne diese Adresse im Browser, um Haltestelle und Linien zu ändern.
 
 ### Werkseinstellungen (Reset)
 

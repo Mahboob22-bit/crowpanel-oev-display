@@ -66,7 +66,6 @@ async function saveConfig() {
     const data = {
         ssid: document.getElementById('ssid').value,
         password: document.getElementById('password').value,
-        apikey: document.getElementById('apikey').value,
         station: {
             name: document.getElementById('st_name').value,
             id: document.getElementById('st_id').value

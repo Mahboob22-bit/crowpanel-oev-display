@@ -121,11 +121,6 @@ void WebConfigModule::handleConfigSave(AsyncWebServerRequest *request, uint8_t *
         configStore->setWifiCredentials(doc["ssid"], doc["password"]);
     }
     
-    // API Key
-    if (doc["apikey"].is<const char*>()) {
-        configStore->setApiKey(doc["apikey"]);
-    }
-    
     // Station
     if (doc["station"].is<JsonObject>()) {
         JsonObject st = doc["station"];

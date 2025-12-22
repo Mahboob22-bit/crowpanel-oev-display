@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "../Logger/Logger.h"
+#include "secrets.h"
 #include "../Display/display_manager.h" // For DisplayEvent enum
 
 // Endpoint für OJP 2.0
@@ -41,11 +42,12 @@ void TransportModule::updateConfig() {
     
     xSemaphoreTake(_mutex, portMAX_DELAY);
     
-    _apiKey = configStore->getApiKey();
+    _apiKey = OJP_API_KEY;
     StationConfig station = configStore->getStation();
     _stationId = station.id;
     
     Logger::info("TRANSPORT", "Config updated from Store");
+    Logger::info("TRANSPORT", "API Key used from secrets.h");
     Logger::printf("TRANSPORT", "Station ID: %s", _stationId.c_str());
     
     xSemaphoreGive(_mutex);
