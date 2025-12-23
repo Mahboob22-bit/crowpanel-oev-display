@@ -35,9 +35,14 @@ void WebConfigModule::setupRoutes() {
         this->handleStatus(request);
     });
     
-    // API: Scan
+    // API: Scan Start
     server.on("/api/scan", HTTP_GET, [this](AsyncWebServerRequest *request) {
         this->handleScan(request);
+    });
+
+    // API: Scan Results
+    server.on("/api/scan-results", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        this->handleScanResults(request);
     });
     
     // API: Config Save (POST)
@@ -79,26 +84,65 @@ void WebConfigModule::handleStatus(AsyncWebServerRequest *request) {
 }
 
 void WebConfigModule::handleScan(AsyncWebServerRequest *request) {
-    Logger::info("WEB", "Scanning for networks...");
+    int scanStatus = WiFi.scanComplete();
     
-    // Achtung: Synchro-Scan blockiert für ca 2-5s.
-    // Im AP-Mode kann das Verbindung kurz stören.
-    int n = WiFi.scanNetworks();
-    
-    JsonDocument doc;
-    JsonArray networks = doc["networks"].to<JsonArray>();
-    
-    for (int i = 0; i < n; ++i) {
-        JsonObject net = networks.add<JsonObject>();
-        net["ssid"] = WiFi.SSID(i);
-        net["rssi"] = WiFi.RSSI(i);
-        net["secure"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+    if (scanStatus == -1) {
+        // Scan läuft bereits
+        Logger::info("WEB", "Scan already running");
+        request->send(200, "application/json", "{\"status\":\"running\",\"message\":\"Scan already in progress\"}");
+    } else {
+        // Neuen Scan starten (async = true)
+        Logger::info("WEB", "Starting async WiFi scan...");
+        WiFi.scanNetworks(true); 
+        request->send(202, "application/json", "{\"status\":\"started\",\"message\":\"Scan started\"}");
     }
-    
-    String response;
-    serializeJson(doc, response);
-    request->send(200, "application/json", response);
-    Logger::printf("WEB", "Scan complete, found %d networks", n);
+}
+
+void WebConfigModule::handleScanResults(AsyncWebServerRequest *request) {
+    int n = WiFi.scanComplete();
+    JsonDocument doc;
+
+    if (n == -2) {
+        // Scan fehlgeschlagen
+        doc["status"] = "failed";
+        doc["message"] = "Scan failed";
+        Logger::error("WEB", "WiFi Scan failed");
+        
+        String response;
+        serializeJson(doc, response);
+        request->send(500, "application/json", response);
+        
+    } else if (n == -1) {
+        // Scan läuft noch
+        doc["status"] = "running";
+        doc["message"] = "Scan in progress";
+        
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+        
+    } else {
+        // Scan fertig
+        doc["status"] = "complete";
+        doc["count"] = n;
+        JsonArray networks = doc["networks"].to<JsonArray>();
+        
+        for (int i = 0; i < n; ++i) {
+            JsonObject net = networks.add<JsonObject>();
+            net["ssid"] = WiFi.SSID(i);
+            net["rssi"] = WiFi.RSSI(i);
+            net["secure"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+        }
+        
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+        
+        Logger::printf("WEB", "Scan complete, found %d networks", n);
+        
+        // Scan-Ergebnisse löschen, um Speicher freizugeben
+        WiFi.scanDelete();
+    }
 }
 
 void WebConfigModule::handleConfigSave(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {

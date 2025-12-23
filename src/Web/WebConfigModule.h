@@ -22,6 +22,7 @@ private:
     
     void setupRoutes();
     void handleScan(AsyncWebServerRequest *request);
+    void handleScanResults(AsyncWebServerRequest *request);
     void handleStatus(AsyncWebServerRequest *request);
     void handleConfigSave(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 };

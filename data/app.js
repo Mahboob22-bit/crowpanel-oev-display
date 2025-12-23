@@ -42,24 +42,67 @@ async function scanWifi() {
     list.innerHTML = 'Suche WLANs... (bitte warten)';
     
     try {
-        const res = await fetch('/api/scan');
-        const data = await res.json();
+        // 1. Scan starten
+        const startRes = await fetch('/api/scan');
+        const startData = await startRes.json();
         
-        list.innerHTML = '';
-        data.networks.forEach(net => {
-            const div = document.createElement('div');
-            div.className = 'wifi-item';
-            div.innerHTML = `<span>${net.ssid}</span> <span>${net.rssi} dBm ${net.secure ? '🔒' : '🔓'}</span>`;
-            div.onclick = () => {
-                document.getElementById('ssid').value = net.ssid;
-                document.getElementById('password').focus();
-            };
-            list.appendChild(div);
-        });
+        if (startData.status !== 'started' && startData.status !== 'running') {
+            throw new Error(startData.message || 'Start failed');
+        }
+
+        // 2. Pollen auf Ergebnisse
+        let attempts = 0;
+        const maxAttempts = 20; // 20 * 500ms = 10 Sekunden Timeout
+        
+        const poll = async () => {
+            if (attempts >= maxAttempts) {
+                list.innerHTML = 'Timeout beim Scannen.';
+                return;
+            }
+            
+            attempts++;
+            const res = await fetch('/api/scan-results');
+            const data = await res.json();
+            
+            if (data.status === 'running') {
+                list.innerHTML = `Suche läuft... (${attempts})`;
+                setTimeout(poll, 500);
+            } else if (data.status === 'complete') {
+                // Ergebnisse anzeigen
+                renderNetworks(data.networks);
+            } else {
+                list.innerHTML = 'Fehler: ' + (data.message || 'Unbekannt');
+            }
+        };
+        
+        // Start polling
+        setTimeout(poll, 500);
+        
     } catch (e) {
         list.innerHTML = 'Fehler beim Scannen.';
         console.error(e);
     }
+}
+
+function renderNetworks(networks) {
+    const list = document.getElementById('wifi-list');
+    list.innerHTML = '';
+    
+    if (!networks || networks.length === 0) {
+        list.innerHTML = 'Keine Netzwerke gefunden.';
+        return;
+    }
+
+    networks.forEach(net => {
+        const div = document.createElement('div');
+        div.className = 'wifi-item';
+        div.innerHTML = `<span>${net.ssid}</span> <span>${net.rssi} dBm ${net.secure ? '🔒' : '🔓'}</span>`;
+        div.onclick = () => {
+            document.getElementById('ssid').value = net.ssid;
+            document.getElementById('password').focus();
+        };
+        list.appendChild(div);
+    });
 }
 
 async function saveConfig() {
