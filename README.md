@@ -11,9 +11,11 @@ Vollständig konfigurierbar über ein Web-Interface (WLAN, Haltestelle, Linien).
 
 - **Echtzeit-Fahrplan:** Zeigt die nächsten Verbindungen von der Schweizer Transport API (opentransportdata.swiss).
 - **Web-Konfiguration:** Keine Code-Änderung nötig! WLAN und Haltestelle einfach per Browser einstellen.
+- **Klares Design:** Tabellarische Ansicht mit invertierten Liniennummern für beste Lesbarkeit.
+- **Info Screen:** Zeigt Verbindungsstatus und Konfigurations-URL (QR-Code ready).
 - **Einfaches Setup:** Gerät erstellt bei Erstnutzung (oder Fehler) einen Hotspot.
 - **Automatische Updates:** Aktualisiert alle 30 Sekunden (konfigurierbar).
-- **Robust:** Reconnect-Logik und visuelle Fehleranzeige bei Verbindungsproblemen.
+- **Robust:** Reconnect-Logik, WLAN-Signalstärkeanzeige und visuelle Fehleranzeige.
 
 ## 🛠 Hardware
 

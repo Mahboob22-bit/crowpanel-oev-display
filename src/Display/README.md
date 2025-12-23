@@ -12,23 +12,31 @@ Steuert das E-Paper Display und zeichnet die Benutzeroberfläche.
 ## Abhängigkeiten
 
 *   `GxEPD2` (Hardware Treiber)
-*   `DisplayEvent` Enum (Input Queue)
+*   `SystemEvent` Enum (via `src/Core/SystemEvents.h`)
+*   `TransportTypes.h` (für Fahrplandaten)
 
 ## States & Screens
 
-*   `STATE_BOOT`: Initialer Boot-Screen.
+*   `STATE_BOOT`: Initialer Boot-Screen mit Logo.
 *   `STATE_SETUP`: Wird bei `EVENT_WIFI_AP_MODE` aktiviert. Zeigt Instruktionen zum Verbinden mit dem "CrowPanel-Setup" WLAN und die URL.
-*   `STATE_DASHBOARD`: Wird bei `EVENT_WIFI_CONNECTED` aktiviert. Zeigt:
-    *   System Status (IP, Hostname).
-    *   ÖV-Daten (sobald verfügbar).
-    *   Logs/Status (aktuell implementiert).
+*   `STATE_DASHBOARD`: Die Hauptansicht. Zeigt:
+    *   **Header:** Haltestellenname, Uhrzeit, WLAN-Signalstärke.
+    *   **Tabelle:** Die nächsten 4 Abfahrten (Linie invertiert, Ziel, Minuten).
+    *   **Footer:** Update-Zeitpunkt.
+*   `STATE_INFO`: Informations-Screen mit URL zur Konfiguration und Platzhalter für QR-Code.
+*   `STATE_ERROR`: Zeigt kritische Fehler (z.B. WLAN verloren) groß an.
 
 ## API
 
 ```cpp
 void begin(QueueHandle_t eventQueue);
-void update(DisplayEvent event);
+void update(SystemEvent event);
 bool init();
 void hibernate();
 void wakeup();
+
+// Data Setters
+void setDepartures(const std::vector<Departure>& departures);
+void setStationName(String name);
+void setDataProvider(DataProvider provider);
 ```

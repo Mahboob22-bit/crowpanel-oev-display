@@ -72,6 +72,10 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 
 **F-21:** Das System synchronisiert die Uhrzeit automatisch über NTP.
 
+**F-22:** Das Display zeigt die aktuelle WLAN-Signalstärke an.
+
+**F-23:** Es gibt einen Info-Screen, der die Konfigurations-URL und (optional) einen QR-Code anzeigt.
+
 ---
 
 ## 3. Optionale Anforderungen (Nice-to-Have)
@@ -209,4 +213,5 @@ _Keine offenen Fragen - alle Anforderungen sind geklärt._
 | 1.0 | 2024-12 | Initiale Version | Mahboob |
 | 1.1 | 2024-12 | Ergänzung NTP, Warn-Icon | Assistant |
 | 1.2 | 2024-12 | Manuelles Update per Taster, Input Refactoring | Assistant |
+| 1.3 | 2024-12 | Display Layout (Tabelle, Signalstärke, Info Screen) | Assistant |
 
