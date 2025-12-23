@@ -6,20 +6,7 @@
 #include <vector>
 #include <functional>
 #include "../Transport/TransportTypes.h"
-
-// Display Events
-enum DisplayEvent {
-    EVENT_BUTTON_MENU,
-    EVENT_BUTTON_EXIT,
-    EVENT_BUTTON_ROTARY,
-    EVENT_INIT,
-    EVENT_UPDATE,
-    EVENT_DATA_AVAILABLE,
-    EVENT_WIFI_CONNECTED,
-    EVENT_WIFI_LOST,
-    EVENT_WIFI_AP_MODE,
-    EVENT_INTERNET_OK
-};
+#include "../Core/SystemEvents.h"
 
 enum DisplayState {
     STATE_BOOT,
@@ -39,7 +26,7 @@ public:
     bool init();
     void hibernate();
     void wakeup();
-    void update(DisplayEvent event);
+    void update(SystemEvent event);
 
     // Data Setters
     void setDepartures(const std::vector<Departure>& departures);
@@ -66,12 +53,12 @@ private:
     DataProvider dataProvider;
 
     // Drawing Methods
-    void drawUI(DisplayEvent event);
+    void drawUI(SystemEvent event);
     
     // Screens
     void drawBootScreen();
     void drawSetupScreen();
-    void drawDashboard(DisplayEvent event);
+    void drawDashboard(SystemEvent event);
     void drawErrorScreen();
 
     // Helpers

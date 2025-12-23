@@ -27,7 +27,7 @@ void DisplayManager::begin(QueueHandle_t queue) {
 
 void DisplayManager::taskCode(void* pvParameters) {
     DisplayManager* instance = (DisplayManager*)pvParameters;
-    DisplayEvent event;
+    SystemEvent event;
 
     if (!instance->init()) {
         Logger::error("TASK_DISPLAY", "Display initialization failed!");
@@ -95,7 +95,7 @@ void DisplayManager::setDataProvider(DataProvider provider) {
     this->dataProvider = provider;
 }
 
-void DisplayManager::update(DisplayEvent event) {
+void DisplayManager::update(SystemEvent event) {
     if (!initialized) {
         Logger::error("DISPLAY", "Not initialized!");
         return;
@@ -148,7 +148,7 @@ void DisplayManager::update(DisplayEvent event) {
     hibernate();
 }
 
-void DisplayManager::drawUI(DisplayEvent event) {
+void DisplayManager::drawUI(SystemEvent event) {
     display->fillScreen(GxEPD_WHITE);
 
     switch(currentState) {
@@ -230,7 +230,7 @@ void DisplayManager::drawErrorScreen() {
     display->println("Versuche Neustart...");
 }
 
-void DisplayManager::drawDashboard(DisplayEvent event) {
+void DisplayManager::drawDashboard(SystemEvent event) {
     // Header
     struct tm timeinfo;
     char timeStr[6] = "00:00";

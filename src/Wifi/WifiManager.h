@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include "../Display/display_manager.h"
+#include "../Core/SystemEvents.h"
 #include "../Core/ConfigStore.h"
 
 enum WifiState {

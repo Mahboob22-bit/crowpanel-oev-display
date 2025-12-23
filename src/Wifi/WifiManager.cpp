@@ -43,19 +43,19 @@ void WifiManager::taskCode(void* pvParameters) {
              if (currentState == WIFI_CONNECTED) {
                  Logger::info("TASK_WIFI", "Wifi connected -> Sending event");
                  if (instance->eventQueue != NULL) {
-                     DisplayEvent event = EVENT_WIFI_CONNECTED;
+                     SystemEvent event = EVENT_WIFI_CONNECTED;
                      xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
                  }
              } else if (currentState == WIFI_AP_MODE) {
                  Logger::info("TASK_WIFI", "AP Mode started -> Sending event");
                  if (instance->eventQueue != NULL) {
-                     DisplayEvent event = EVENT_WIFI_AP_MODE;
+                     SystemEvent event = EVENT_WIFI_AP_MODE;
                      xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
                  }
              } else if (lastState == WIFI_CONNECTED && currentState == WIFI_DISCONNECTED) {
                  Logger::info("TASK_WIFI", "Wifi lost -> Sending event");
                  if (instance->eventQueue != NULL) {
-                     DisplayEvent event = EVENT_WIFI_LOST;
+                     SystemEvent event = EVENT_WIFI_LOST;
                      xQueueSend(instance->eventQueue, &event, portMAX_DELAY);
                  }
              }
@@ -151,7 +151,7 @@ void WifiManager::checkInternet() {
         if (httpCode > 0) {
             Logger::printf("WIFI", "Internet Check: OK (Code %d)", httpCode);
             if (eventQueue) {
-                DisplayEvent event = EVENT_INTERNET_OK;
+                SystemEvent event = EVENT_INTERNET_OK;
                 xQueueSend(eventQueue, &event, portMAX_DELAY);
             }
         } else {

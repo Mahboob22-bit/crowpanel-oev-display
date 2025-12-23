@@ -4,7 +4,7 @@
 #include <WiFiClientSecure.h>
 #include "../Logger/Logger.h"
 #include "secrets.h"
-#include "../Display/display_manager.h" // For DisplayEvent enum
+// #include "../Display/display_manager.h" // Entfernt, da wir jetzt SystemEvents nutzen
 
 // Endpoint für OJP 2.0
 const char* OJP_API_URL = "https://api.opentransportdata.swiss/ojp2020";
@@ -66,20 +66,13 @@ std::vector<Departure> TransportModule::getDepartures() {
 void TransportModule::taskCode(void* pvParameters) {
     TransportModule* module = (TransportModule*)pvParameters;
     
-    // Setup Loop
-    TickType_t xLastWakeTime;
+    // Initialer Fetch
     const TickType_t xFrequency = pdMS_TO_TICKS(module->_updateInterval);
-    xLastWakeTime = xTaskGetTickCount();
     
     for (;;) {
-        // Warte bis zum nächsten Zyklus
-        vTaskDelayUntil(&xLastWakeTime, xFrequency);
-        
-        // Config kann sich geändert haben, wir laden sie neu vor jedem Fetch
-        // (Effizienter wäre nur bei Änderung, aber für jetzt ok)
+        // 1. Config laden & Fetch ausführen
         module->updateConfig();
         
-        // Prüfe Voraussetzungen
         bool ready = false;
         if (module->_mutex) {
             xSemaphoreTake(module->_mutex, portMAX_DELAY);
@@ -92,55 +85,19 @@ void TransportModule::taskCode(void* pvParameters) {
         } else {
              Logger::info("TRANSPORT", "Missing configuration (API Key or Station ID)");
         }
+
+        // 2. Warten: Entweder Timeout (30s) abgelaufen ODER Signal bekommen (triggerUpdate)
+        // ulTaskNotifyTake gibt > 0 zurück, wenn ein Signal kam, 0 bei Timeout
+        if (ulTaskNotifyTake(pdTRUE, xFrequency) > 0) {
+            Logger::info("TRANSPORT", "Update triggered manually!");
+        }
     }
 }
 
-String TransportModule::buildRequestXml() {
-    // Aktuelle Zeit für Request (in UTC)
-    time_t now;
-    time(&now);
-    struct tm* timeinfo = gmtime(&now);
-    char timeStr[30];
-    strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%SZ", timeinfo);
-    
-    // Copy members thread-safe for local usage
-    String sId;
-    if (_mutex) {
-        xSemaphoreTake(_mutex, portMAX_DELAY);
-        sId = _stationId;
-        xSemaphoreGive(_mutex);
+void TransportModule::triggerUpdate() {
+    if (taskHandle != NULL) {
+        xTaskNotifyGive(taskHandle);
     }
-
-    // Einfacher String-Builder für XML Request
-    // Wir fragen 4 Resultate ab, um Puffer zu haben
-    String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-    xml += "<OJP xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns=\"http://www.siri.org.uk/siri\" version=\"1.0\" xmlns:ojp=\"http://www.vdv.de/ojp\" xsi:schemaLocation=\"http://www.siri.org.uk/siri ../ojp-xsd-v1.0/OJP.xsd\">";
-    xml += "<OJPRequest>";
-    xml += "<ServiceRequest>";
-    xml += "<RequestTimestamp>" + String(timeStr) + "</RequestTimestamp>";
-    xml += "<RequestorRef>CrowPanelDisplay</RequestorRef>";
-    xml += "<ojp:OJPStopEventRequest>";
-    xml += "<RequestTimestamp>" + String(timeStr) + "</RequestTimestamp>";
-    xml += "<ojp:Location>";
-    xml += "<ojp:PlaceRef>";
-    xml += "<ojp:StopPlaceRef>" + sId + "</ojp:StopPlaceRef>";
-    xml += "<ojp:LocationName>";
-    xml += "<ojp:Text>Station</ojp:Text>"; 
-    xml += "</ojp:LocationName>";
-    xml += "</ojp:PlaceRef>";
-    xml += "<ojp:DepArrTime>" + String(timeStr) + "</ojp:DepArrTime>";
-    xml += "</ojp:Location>";
-    xml += "<ojp:Params>";
-    xml += "<ojp:NumberOfResults>4</ojp:NumberOfResults>";
-    xml += "<ojp:StopEventType>departure</ojp:StopEventType>";
-    xml += "<ojp:IncludeRealtimeData>true</ojp:IncludeRealtimeData>";
-    xml += "</ojp:Params>";
-    xml += "</ojp:OJPStopEventRequest>";
-    xml += "</ServiceRequest>";
-    xml += "</OJPRequest>";
-    xml += "</OJP>";
-    
-    return xml;
 }
 
 void TransportModule::fetchData() {
@@ -168,7 +125,14 @@ void TransportModule::fetchData() {
             http.addHeader("Content-Type", "text/xml");
             http.addHeader("Authorization", "Bearer " + key);
             
-            String requestBody = buildRequestXml();
+            String sId;
+            if (_mutex) {
+                xSemaphoreTake(_mutex, portMAX_DELAY);
+                sId = _stationId;
+                xSemaphoreGive(_mutex);
+            }
+            
+            String requestBody = OjpParser::buildRequestXml(sId, "CrowPanelDisplay");
             Logger::info("TRANSPORT", "Sending OJP Request...");
             
             int httpCode = http.POST(requestBody);
@@ -189,7 +153,7 @@ void TransportModule::fetchData() {
                     
                     // Fire Event
                     if (eventQueue) {
-                        DisplayEvent event = EVENT_DATA_AVAILABLE;
+                        SystemEvent event = EVENT_DATA_AVAILABLE;
                         xQueueSend(eventQueue, &event, 0);
                     }
                 } else {

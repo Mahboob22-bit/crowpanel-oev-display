@@ -9,6 +9,7 @@
 #include "Transport/TransportModule.h"
 #include "Core/ConfigStore.h"
 #include "Web/WebConfigModule.h"
+#include "Core/SystemEvents.h"
 
 // Display Treiber Instanz (GYE042A87 für CrowPanel 4.2")
 GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>
@@ -45,7 +46,7 @@ void setup() {
     configStore.begin();
 
     // 1. Event Queue
-    displayEventQueue = xQueueCreate(10, sizeof(DisplayEvent));
+    displayEventQueue = xQueueCreate(10, sizeof(SystemEvent));
     if (displayEventQueue == NULL) {
         Logger::error("SETUP", "Failed to create event queue!");
         return; // Fatal Error
@@ -56,7 +57,7 @@ void setup() {
     Logger::info("SETUP", "Starting modules...");
 
     // Input (Buttons)
-    inputManager.begin(displayEventQueue, &configStore);
+    inputManager.begin(displayEventQueue, &configStore, &transportModule);
 
     // Display
     displayManager.begin(displayEventQueue);

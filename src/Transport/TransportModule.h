@@ -5,10 +5,7 @@
 #include <vector>
 #include "TransportTypes.h"
 #include "../Core/ConfigStore.h"
-
-// Events (vorläufig hier definiert, sollten in eine zentrale Event-Datei)
-#define EVENT_DATA_NEW "DATA_NEW"
-#define EVENT_DATA_ERROR "DATA_ERROR"
+#include "../Core/SystemEvents.h"
 
 class TransportModule {
 public:
@@ -19,6 +16,9 @@ public:
     // Config wird jetzt intern aus dem Store geholt
     void updateConfig();
     
+    // Weckt den Task auf für ein sofortiges Update
+    void triggerUpdate();
+
     std::vector<Departure> getDepartures();
 
 private:
@@ -37,7 +37,6 @@ private:
     QueueHandle_t eventQueue;
     
     void fetchData();
-    String buildRequestXml();
 };
 
 #endif // TRANSPORT_MODULE_H
