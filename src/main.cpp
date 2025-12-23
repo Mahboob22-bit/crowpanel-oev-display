@@ -9,6 +9,7 @@
 #include "Transport/TransportModule.h"
 #include "Core/ConfigStore.h"
 #include "Web/WebConfigModule.h"
+#include "Time/TimeModule.h"
 #include "Core/SystemEvents.h"
 
 // Display Treiber Instanz (GYE042A87 für CrowPanel 4.2")
@@ -23,6 +24,7 @@ SystemMonitor systemMonitor;
 TransportModule transportModule;
 ConfigStore configStore;
 WebConfigModule webConfigModule;
+TimeModule timeModule;
 
 // Globale Event Queue
 QueueHandle_t displayEventQueue;
@@ -77,6 +79,9 @@ void setup() {
 
     // Wifi
     wifiManager.begin(&configStore, displayEventQueue);
+
+    // Time Module (NTP)
+    timeModule.begin(displayEventQueue);
 
     // Web Config
     webConfigModule.begin(&configStore, &wifiManager);

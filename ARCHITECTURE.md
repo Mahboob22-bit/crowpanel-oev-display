@@ -15,7 +15,7 @@ Die Firmware ist in funktionale Module unterteilt. Jedes Modul kapselt seine Log
 | **WifiManager** | Verwaltet WLAN-Verbindung (Station Mode) und Access Point (AP Mode). Reconnect-Logik. | Meldet: `EVENT_WIFI_CONNECTED`, `EVENT_WIFI_LOST`. |
 | **InputManager** | Verwaltet Buttons (Menu, Exit, Rotary). Nutzt **Polling** statt Interrupts. | Meldet: `EVENT_BUTTON_...`. Triggert: Manual Update via `TransportModule`. |
 | **SystemMonitor** | Überwacht Systemressourcen (Heap, Stack, Uptime) und loggt diese periodisch. | Loggt via `Logger`. |
-| **TimeModule** | Synchronisiert Systemzeit via NTP. | Meldet: `EVENT_TIME_SYNCED`. Stellt `getLocalTime()` bereit. |
+| **TimeModule** | Synchronisiert Systemzeit via NTP. | Meldet: `EVENT_TIME_SYNCED`. Stellt `getFormattedTime()` bereit. |
 | **WebConfigModule** | Startet Webserver. Stellt REST-API bereit. Liefert Frontend-Files aus. | Liest/Schreibt: `ConfigStore`. |
 | **TransportModule** | Fragt periodisch (oder bei Trigger) die Transport-API ab. Nutzt `OjpParser` für XML. | Trigger: Timer (30s) oder Button. Meldet: `EVENT_DATA_AVAILABLE`. |
 | **DisplayManager** | Verwaltet E-Paper Hardware. Zeichnet UI basierend auf Status. | Hört auf: `SystemEvent`. Verwaltet Power-Modes. |

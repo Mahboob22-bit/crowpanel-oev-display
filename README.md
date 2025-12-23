@@ -68,6 +68,7 @@ Details siehe [ARCHITECTURE.md](ARCHITECTURE.md).
 - **[ConfigStore](src/Core/README.md):** Speichert Einstellungen persistent im NVS.
 - **[InputManager](src/Input/README.md):** Verarbeitet Tasten-Eingaben.
 - **[SystemMonitor](src/System/README.md):** Überwacht Systemressourcen.
+- **[TimeModule](src/Time/README.md):** Zeitsynchronisation via NTP.
 - **[Logger](src/Logger/README.md):** Zentrales Logging.
 
 ## 💻 Development

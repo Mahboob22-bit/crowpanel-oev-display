@@ -23,7 +23,10 @@ enum SystemEvent {
     EVENT_WIFI_CONNECTED,
     EVENT_WIFI_LOST,
     EVENT_WIFI_AP_MODE,
-    EVENT_INTERNET_OK
+    EVENT_INTERNET_OK,
+
+    // Time
+    EVENT_TIME_SYNCED
 };
 
 #endif // SYSTEM_EVENTS_H
