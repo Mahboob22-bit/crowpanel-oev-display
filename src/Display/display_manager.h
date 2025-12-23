@@ -12,6 +12,7 @@ enum DisplayState {
     STATE_BOOT,
     STATE_SETUP,
     STATE_DASHBOARD,
+    STATE_INFO,
     STATE_ERROR
 };
 
@@ -59,6 +60,7 @@ private:
     void drawBootScreen();
     void drawSetupScreen();
     void drawDashboard(SystemEvent event);
+    void drawInfoScreen();
     void drawErrorScreen();
 
     // Helpers
@@ -66,6 +68,7 @@ private:
     void drawFooter(String status);
     void drawInvertedBadge(int x, int y, int w, int h, String text);
     void drawDepartureRow(int y, const Departure& dep);
+    void drawWifiSignal(int x, int y, int rssi);
 };
 
 #endif // DISPLAY_MANAGER_H

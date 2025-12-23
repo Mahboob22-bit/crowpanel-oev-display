@@ -162,6 +162,11 @@ void DisplayManager::drawUI(SystemEvent event) {
             drawErrorScreen();
             break;
         case STATE_DASHBOARD:
+            drawDashboard(event);
+            break;
+        case STATE_INFO:
+            drawInfoScreen();
+            break;
         default:
             drawDashboard(event);
             break;
@@ -267,6 +272,41 @@ void DisplayManager::drawDashboard(SystemEvent event) {
     drawFooter(status);
 }
 
+void DisplayManager::drawInfoScreen() {
+    drawHeader("INFO / KONFIG", "");
+
+    display->setFont(&FreeSans9pt7b);
+    display->setCursor(10, 80);
+    display->println("Um das Geraet zu konfigurieren,");
+    display->println("oeffne im Browser:");
+
+    display->setFont(&FreeSansBold9pt7b);
+    display->setCursor(30, 130);
+    display->println("http://crowpanel.local/");
+    
+    display->setFont(&FreeSans9pt7b);
+    display->setCursor(10, 180);
+    display->println("Oder scanne den QR-Code:");
+
+    // Platzhalter für QR Code Box (100x100)
+    int qrX = 150;
+    int qrY = 190;
+    int qrSize = 80;
+    
+    // Rahmen
+    display->drawRect(qrX, qrY, qrSize, qrSize, GxEPD_BLACK);
+    // Dummy Muster (Checkerboard)
+    for(int i=0; i<qrSize; i+=10) {
+        for(int j=0; j<qrSize; j+=10) {
+            if ((i+j)%20 == 0) {
+                 display->fillRect(qrX+i, qrY+j, 10, 10, GxEPD_BLACK);
+            }
+        }
+    }
+    
+    drawFooter("Menu druecken zum Zurueckkehren");
+}
+
 // --- Helpers ---
 
 void DisplayManager::drawHeader(String title, String rightText) {
@@ -275,11 +315,31 @@ void DisplayManager::drawHeader(String title, String rightText) {
     display->setCursor(5, 30);
     display->print(title.substring(0, 15)); // Basic truncate
 
-    // Right: Text
+    // Calculate Right Text Size
     display->setFont(&FreeSansBold9pt7b);
     int16_t tbx, tby; uint16_t tbw, tbh;
     display->getTextBounds(rightText, 0, 0, &tbx, &tby, &tbw, &tbh);
-    display->setCursor(400 - tbw - 5, 30);
+    
+    int wifiWidth = 24;
+    int gap = 10;
+    int margin = 5;
+    
+    // Default position (Text ganz rechts)
+    int rightTextX = 400 - margin - tbw;
+    
+    // Wifi Icon logic
+    if (currentState == STATE_DASHBOARD && WiFi.status() == WL_CONNECTED) {
+        // Icon ganz rechts
+        int iconX = 400 - margin - wifiWidth; 
+        int iconY = 30; // Baseline
+        drawWifiSignal(iconX, iconY, WiFi.RSSI());
+        
+        // Text links daneben
+        rightTextX = iconX - gap - tbw;
+    }
+
+    // Right: Text (Time)
+    display->setCursor(rightTextX, 30);
     display->print(rightText);
 
     // Thick Line
@@ -341,4 +401,39 @@ void DisplayManager::drawDepartureRow(int y, const Departure& dep) {
 
     // Separator
     display->drawLine(0, y + 50, 400, y + 50, GxEPD_BLACK);
+}
+
+void DisplayManager::drawWifiSignal(int x, int y, int rssi) {
+    // x,y ist unten links vom Icon
+    int barWidth = 4;
+    int gap = 2;
+    int maxBars = 4;
+    
+    // RSSI Normalisierung
+    // > -55: 4 Bars
+    // > -70: 3 Bars
+    // > -85: 2 Bars
+    // > -100: 1 Bar
+    // else: 0 Bars
+    
+    int bars = 0;
+    if (rssi > -55) bars = 4;
+    else if (rssi > -70) bars = 3;
+    else if (rssi > -85) bars = 2;
+    else if (rssi > -100) bars = 1;
+    
+    // Zeichne Balken
+    for (int i = 0; i < maxBars; i++) {
+        int height = 4 + (i * 4); // 4, 8, 12, 16 px
+        int xPos = x + (i * (barWidth + gap));
+        int yPos = y - height;
+        
+        if (i < bars) {
+            // Gefüllter Balken
+            display->fillRect(xPos, yPos, barWidth, height, GxEPD_BLACK);
+        } else {
+            // Leerer Balken (Rahmen) oder dünne Linie
+            display->drawRect(xPos, yPos, barWidth, height, GxEPD_BLACK);
+        }
+    }
 }
