@@ -13,17 +13,19 @@ Die Firmware ist in funktionale Module unterteilt. Jedes Modul kapselt seine Log
 | Modul | Verantwortung | Interaktion |
 |-------|---------------|-------------|
 | **WifiManager** | Verwaltet WLAN-Verbindung (Station Mode) und Access Point (AP Mode). Reconnect-Logik. | Meldet: `EVENT_WIFI_CONNECTED`, `EVENT_WIFI_LOST`. |
-| **InputManager** | Verwaltet Buttons (Menu, Exit, Rotary). Entprellt Signale (Debounce) und feuert Events. | Meldet: `EVENT_BUTTON_MENU`, `EVENT_BUTTON_EXIT`, `EVENT_BUTTON_ROTARY`. |
+| **InputManager** | Verwaltet Buttons (Menu, Exit, Rotary). Nutzt **Polling** statt Interrupts. | Meldet: `EVENT_BUTTON_...`. Triggert: Manual Update via `TransportModule`. |
 | **SystemMonitor** | Überwacht Systemressourcen (Heap, Stack, Uptime) und loggt diese periodisch. | Loggt via `Logger`. |
 | **TimeModule** | Synchronisiert Systemzeit via NTP. | Meldet: `EVENT_TIME_SYNCED`. Stellt `getLocalTime()` bereit. |
-| **WebConfigModule** | Startet Webserver. Stellt REST-API bereit. Liefert Frontend-Files aus. | Liest/Schreibt: `ConfigStore`. Triggered: `EVENT_CONFIG_CHANGED`. |
-| **TransportModule** | Fragt periodisch (oder bei Event) die Transport-API ab. Parst JSON. | Trigger: Timer (30s). Meldet: `EVENT_DATA_NEW`, `EVENT_DATA_ERROR`. Liest: `ConfigStore`. |
-| **DisplayManager** | Verwaltet E-Paper Hardware. Zeichnet UI basierend auf Status. | Hört auf: `EVENT_DATA_NEW`, `EVENT_DATA_ERROR`, `EVENT_WIFI_...`. Verwaltet Power-Modes. |
+| **WebConfigModule** | Startet Webserver. Stellt REST-API bereit. Liefert Frontend-Files aus. | Liest/Schreibt: `ConfigStore`. |
+| **TransportModule** | Fragt periodisch (oder bei Trigger) die Transport-API ab. Nutzt `OjpParser` für XML. | Trigger: Timer (30s) oder Button. Meldet: `EVENT_DATA_AVAILABLE`. |
+| **DisplayManager** | Verwaltet E-Paper Hardware. Zeichnet UI basierend auf Status. | Hört auf: `SystemEvent`. Verwaltet Power-Modes. |
 | **ConfigStore** | Persistente Speicherung (NVS/Preferences). | Wird von allen Modulen gelesen. Geschrieben von `WebConfigModule`. |
 
 ### 2.2 Datenfluss & Kommunikation
 
-Die Kommunikation erfolgt primär über eine zentrale **Event Queue** oder direkte Task-Notifications, um Thread-Safety zu gewährleisten.
+Die Kommunikation erfolgt primär über eine zentrale **Event Queue** oder direkte Task-Notifications (z.B. für manuelles Update).
+
+Alle System-Events sind zentral in `src/Core/SystemEvents.h` definiert, um zirkuläre Abhängigkeiten zu vermeiden.
 
 ```mermaid
 graph TD
@@ -33,12 +35,13 @@ graph TD
     %% Modules
     Wifi[WifiManager] -->|Wifi Status| EventQ
     Input[InputManager] -->|Button Press| EventQ
+    Input -.->|Trigger Update| Transport[TransportModule]
     Web[WebConfigModule] -->|Config Changed| EventQ
     Time[TimeModule] -->|Time Synced| EventQ
     
-    Transport[TransportModule]
+    Transport
     EventQ -->|Trigger Update| Transport
-    Transport -->|New Data / Error| EventQ
+    Transport -->|New Data| EventQ
     
     Display[DisplayManager]
     EventQ -->|All Events| Display

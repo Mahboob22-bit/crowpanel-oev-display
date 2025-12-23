@@ -42,7 +42,12 @@ Erstelle die Datei `include/secrets.h` und trage deinen API Key ein:
 Wenn das Gerät verbunden ist, zeigt es seine IP-Adresse und URL auf dem Display an (z.B. **http://crowpanel.local**).
 Öffne diese Adresse im Browser, um Haltestelle und Linien zu ändern.
 
-### Werkseinstellungen (Reset)
+### Werkseinstellungen (Reset) & Manuelles Update
+
+Das Gerät verfügt über Tasten (Menu = Oben), die folgende Funktionen haben:
+
+-   **Kurzer Druck (Menu):** Erzwingt eine sofortige Aktualisierung der Abfahrtszeiten.
+-   **Langer Druck (Menu > 3s):** Löscht alle Einstellungen und startet wieder im Setup-Modus.
 
 Falls du das WLAN wechselst oder Fehler auftreten:
 - **Hardware:** Halte die **MENU**-Taste (oben) für **3 Sekunden** gedrückt.

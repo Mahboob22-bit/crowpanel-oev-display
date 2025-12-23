@@ -32,6 +32,8 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 
 **F-06:** Das Display wird nur visuell aktualisiert, wenn sich die anzuzeigenden Informationen geändert haben.
 
+**F-06b:** Der Benutzer kann durch kurzen Tastendruck eine manuelle Aktualisierung erzwingen.
+
 ### 2.2 Konfiguration
 
 **F-07:** Die Haltestelle ist über eine Web-Oberfläche einstellbar.
@@ -65,6 +67,8 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 **F-19:** Das System bezieht die ÖV-Daten von der offiziellen Schweizer Transport-API.
 
 **F-20:** Das System funktioniert mit allen Haltestellen, die in der Schweizer Transport-API verfügbar sind.
+
+**(Geplant für Serie):** Der API-Zugriff erfolgt später über einen eigenen Proxy-Server, um den API-Key nicht auf dem Endgerät speichern zu müssen. Vorerst hardcodiert.
 
 **F-21:** Das System synchronisiert die Uhrzeit automatisch über NTP.
 
@@ -204,4 +208,5 @@ _Keine offenen Fragen - alle Anforderungen sind geklärt._
 |---------|-------|----------|-------|
 | 1.0 | 2024-12 | Initiale Version | Mahboob |
 | 1.1 | 2024-12 | Ergänzung NTP, Warn-Icon | Assistant |
+| 1.2 | 2024-12 | Manuelles Update per Taster, Input Refactoring | Assistant |
 
