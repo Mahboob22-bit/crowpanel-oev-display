@@ -12,31 +12,32 @@ String OjpParser::buildRequestXml(const String& stationId, const String& request
     char timeStr[30];
     strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%SZ", timeinfo);
     
-    // Einfacher String-Builder für XML Request
+    // OJP 2.0 Format (für Endpoint /ojp20)
     String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-    xml += "<OJP xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns=\"http://www.siri.org.uk/siri\" version=\"1.0\" xmlns:ojp=\"http://www.vdv.de/ojp\" xsi:schemaLocation=\"http://www.siri.org.uk/siri ../ojp-xsd-v1.0/OJP.xsd\">";
+    xml += "<OJP xmlns=\"http://www.vdv.de/ojp\" xmlns:siri=\"http://www.siri.org.uk/siri\" version=\"2.0\">";
     xml += "<OJPRequest>";
-    xml += "<ServiceRequest>";
-    xml += "<RequestTimestamp>" + String(timeStr) + "</RequestTimestamp>";
-    xml += "<RequestorRef>" + requestorRef + "</RequestorRef>";
-    xml += "<ojp:OJPStopEventRequest>";
-    xml += "<RequestTimestamp>" + String(timeStr) + "</RequestTimestamp>";
-    xml += "<ojp:Location>";
-    xml += "<ojp:PlaceRef>";
-    xml += "<ojp:StopPlaceRef>" + stationId + "</ojp:StopPlaceRef>";
-    xml += "<ojp:LocationName>";
-    xml += "<ojp:Text>Station</ojp:Text>"; 
-    xml += "</ojp:LocationName>";
-    xml += "</ojp:PlaceRef>";
-    xml += "<ojp:DepArrTime>" + String(timeStr) + "</ojp:DepArrTime>";
-    xml += "</ojp:Location>";
-    xml += "<ojp:Params>";
-    xml += "<ojp:NumberOfResults>" + String(limit) + "</ojp:NumberOfResults>";
-    xml += "<ojp:StopEventType>departure</ojp:StopEventType>";
-    xml += "<ojp:IncludeRealtimeData>true</ojp:IncludeRealtimeData>";
-    xml += "</ojp:Params>";
-    xml += "</ojp:OJPStopEventRequest>";
-    xml += "</ServiceRequest>";
+    xml += "<siri:ServiceRequest>";
+    xml += "<siri:ServiceRequestContext><siri:Language>de</siri:Language></siri:ServiceRequestContext>";
+    xml += "<siri:RequestTimestamp>" + String(timeStr) + "</siri:RequestTimestamp>";
+    xml += "<siri:RequestorRef>" + requestorRef + "</siri:RequestorRef>";
+    xml += "<OJPStopEventRequest>";
+    xml += "<siri:RequestTimestamp>" + String(timeStr) + "</siri:RequestTimestamp>";
+    xml += "<siri:MessageIdentifier>StopEvent1</siri:MessageIdentifier>";
+    xml += "<Location>";
+    xml += "<PlaceRef>";
+    xml += "<siri:StopPointRef>" + stationId + "</siri:StopPointRef>";
+    xml += "<Name><Text>Station</Text></Name>";
+    xml += "</PlaceRef>";
+    xml += "</Location>";
+    xml += "<Params>";
+    xml += "<NumberOfResults>" + String(limit) + "</NumberOfResults>";
+    xml += "<StopEventType>departure</StopEventType>";
+    xml += "<IncludePreviousCalls>false</IncludePreviousCalls>";
+    xml += "<IncludeOnwardCalls>false</IncludeOnwardCalls>";
+    xml += "<UseRealtimeData>full</UseRealtimeData>";
+    xml += "</Params>";
+    xml += "</OJPStopEventRequest>";
+    xml += "</siri:ServiceRequest>";
     xml += "</OJPRequest>";
     xml += "</OJP>";
     

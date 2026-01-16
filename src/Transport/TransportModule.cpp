@@ -6,8 +6,8 @@
 #include "secrets.h"
 // #include "../Display/display_manager.h" // Entfernt, da wir jetzt SystemEvents nutzen
 
-// Endpoint für OJP 2.0
-const char* OJP_API_URL = "https://api.opentransportdata.swiss/ojp2020";
+// Endpoint für OJP 2.0 (Korrektur: ojp20 statt ojp2020)
+const char* OJP_API_URL = "https://api.opentransportdata.swiss/ojp20";
 
 TransportModule::TransportModule() 
     : _updateInterval(30000), // 30 Sekunden
@@ -122,8 +122,9 @@ void TransportModule::fetchData() {
         HTTPClient http;
         
         if (http.begin(*client, OJP_API_URL)) {
-            http.addHeader("Content-Type", "text/xml");
+            http.addHeader("Content-Type", "application/xml");
             http.addHeader("Authorization", "Bearer " + key);
+            http.addHeader("User-Agent", "CrowPanel-OEV-Display/1.0");
             
             String sId;
             if (_mutex) {
