@@ -214,4 +214,5 @@ _Keine offenen Fragen - alle Anforderungen sind geklärt._
 | 1.1 | 2024-12 | Ergänzung NTP, Warn-Icon | Assistant |
 | 1.2 | 2024-12 | Manuelles Update per Taster, Input Refactoring | Assistant |
 | 1.3 | 2024-12 | Display Layout (Tabelle, Signalstärke, Info Screen) | Assistant |
+| 1.4 | 2026-01 | Haltestellensuche im Web-Interface, OJP 2.0 Parser-Fix, Zeitzonenkorrektur | Assistant |
 

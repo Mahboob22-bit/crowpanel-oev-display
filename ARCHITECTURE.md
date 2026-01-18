@@ -16,10 +16,10 @@ Die Firmware ist in funktionale Module unterteilt. Jedes Modul kapselt seine Log
 | **InputManager** | Verwaltet Buttons (Menu, Exit, Rotary). Nutzt **Polling** statt Interrupts. | Meldet: `EVENT_BUTTON_...`. Triggert: Manual Update via `TransportModule`. |
 | **SystemMonitor** | Überwacht Systemressourcen (Heap, Stack, Uptime) und loggt diese periodisch. | Loggt via `Logger`. |
 | **TimeModule** | Synchronisiert Systemzeit via NTP. | Meldet: `EVENT_TIME_SYNCED`. Stellt `getFormattedTime()` bereit. |
-| **WebConfigModule** | Startet Webserver. Stellt REST-API bereit. Liefert Frontend-Files aus. | Liest/Schreibt: `ConfigStore`. |
-| **TransportModule** | Fragt periodisch (oder bei Trigger) die Transport-API ab. Nutzt `OjpParser` für XML. | Trigger: Timer (30s) oder Button. Meldet: `EVENT_DATA_AVAILABLE`. |
+| **WebConfigModule** | Startet Webserver. Stellt REST-API bereit. Liefert Frontend-Files aus. Bietet Haltestellensuche. | Liest/Schreibt: `ConfigStore`. Nutzt: `TransportModule` für Suche. |
+| **TransportModule** | Fragt periodisch (oder bei Trigger) die OJP 2.0 API ab. Bietet Haltestellensuche. Nutzt `OjpParser` für XML. | Trigger: Timer (30s) oder Button. Meldet: `EVENT_DATA_AVAILABLE`. |
 | **DisplayManager** | Verwaltet E-Paper Hardware. Zeichnet UI basierend auf Status. | Hört auf: `SystemEvent`. Verwaltet Power-Modes. |
-| **ConfigStore** | Persistente Speicherung (NVS/Preferences). | Wird von allen Modulen gelesen. Geschrieben von `WebConfigModule`. |
+| **ConfigStore** | Persistente Speicherung (NVS/Preferences). Setzt Standardwerte bei Erststart. | Wird von allen Modulen gelesen. Geschrieben von `WebConfigModule`. |
 
 ### 2.2 Datenfluss & Kommunikation
 
@@ -53,9 +53,32 @@ Die Konfigurationsoberfläche ist eine leichtgewichtige Web-App (Vanilla JS), di
 
 ### 3.1 Struktur
 
-*   **API Kommunikation:** Direkte `fetch` Calls an die REST-API (`/api/config`, `/api/scan`, `/api/status`, `/api/reset`).
+*   **API Kommunikation:** Direkte `fetch` Calls an die REST-API (`/api/config`, `/api/scan`, `/api/status`, `/api/reset`, `/api/stops/search`).
 *   **Logik:** `app.js` steuert den Ablauf.
 *   **Views:** Dynamische DOM-Manipulation in `index.html` basierend auf dem Status (AP-Mode vs. Connected).
+
+### 3.2 Haltestellensuche
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend_JS
+    participant WebConfig as WebConfigModule
+    participant Transport as TransportModule
+    participant OJP as OJP_API
+
+    User->>Frontend: Tippt "Bern"
+    Note over Frontend: Debounce 300ms
+    Frontend->>WebConfig: GET /api/stops/search?q=Bern
+    WebConfig->>Transport: searchStops("Bern")
+    Transport->>OJP: HTTP POST LocationInformationRequest
+    OJP-->>Transport: XML Response
+    Transport-->>WebConfig: vector StopSearchResult
+    WebConfig-->>Frontend: JSON Response
+    Frontend->>User: Zeigt Dropdown mit Ergebnissen
+    User->>Frontend: Waehlt Haltestelle
+    Frontend->>Frontend: Fuellt st_name und st_id Felder
+```
 
 ## 4. Technologie-Stack
 
