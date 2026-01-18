@@ -77,3 +77,81 @@ button:hover { background-color: #d0d0d0; }
 
 .wifi-item:hover { background-color: #f9f9f9; }
 
+/* Stop Search Dropdown */
+.search-wrapper {
+    position: relative;
+}
+
+.dropdown-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: #f0f7ff;
+}
+
+.dropdown-item strong {
+    flex: 1;
+}
+
+.dropdown-item .location {
+    color: #666;
+    font-size: 0.85em;
+    margin-left: 10px;
+}
+
+.dropdown-item.loading,
+.dropdown-item.error {
+    color: #666;
+    font-style: italic;
+    cursor: default;
+}
+
+.dropdown-item.error {
+    color: #dc3545;
+}
+
+/* Selected Stop Display */
+.selected-item {
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #666;
+}
+
+.selected-item.has-selection {
+    background: #e8f4e8;
+    border-color: #28a745;
+    color: #333;
+}
+
+.selected-item .stop-id {
+    color: #666;
+    font-size: 0.85em;
+}

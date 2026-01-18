@@ -6,6 +6,15 @@ ConfigStore::ConfigStore() {}
 void ConfigStore::begin() {
     Logger::info("CONFIG", "Initializing ConfigStore...");
     preferences.begin(NAMESPACE, false); // false = read/write
+    
+    // Set defaults if no station configured yet
+    StationConfig station = getStation();
+    if (station.id.length() == 0) {
+        Logger::info("CONFIG", "No station configured, setting defaults (Arlesheim, Im Lee)...");
+        setStation("Arlesheim, Im Lee", "8588764");
+        setLine1("10", "Flüh, Bahnhof");
+        setLine2("10", "Dornach Bahnhof");
+    }
 }
 
 // Wifi

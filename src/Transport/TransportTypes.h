@@ -17,6 +17,12 @@ struct Departure {
     }
 };
 
+struct StopSearchResult {
+    String id;                // z.B. "8503000"
+    String name;              // z.B. "Zürich HB"
+    String topographicPlace;  // z.B. "Zürich"
+};
+
 #endif // TRANSPORT_TYPES_H
 
 

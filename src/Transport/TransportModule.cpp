@@ -100,6 +100,60 @@ void TransportModule::triggerUpdate() {
     }
 }
 
+std::vector<StopSearchResult> TransportModule::searchStops(const String& query) {
+    std::vector<StopSearchResult> results;
+    
+    if (WiFi.status() != WL_CONNECTED) {
+        Logger::info("TRANSPORT", "Wifi not connected, cannot search stops");
+        return results;
+    }
+    
+    if (query.length() == 0) {
+        Logger::info("TRANSPORT", "Empty search query");
+        return results;
+    }
+    
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (client) {
+        client->setInsecure(); // Für Development, später Root CA setzen
+        
+        HTTPClient http;
+        
+        if (http.begin(*client, OJP_API_URL)) {
+            http.addHeader("Content-Type", "application/xml");
+            http.addHeader("Authorization", "Bearer " + String(OJP_API_KEY));
+            http.addHeader("User-Agent", "CrowPanel-OEV-Display/1.0");
+            
+            String requestBody = OjpParser::buildLocationSearchXml(query);
+            Logger::printf("TRANSPORT", "Searching stops for: %s", query.c_str());
+            
+            int httpCode = http.POST(requestBody);
+            
+            if (httpCode > 0) {
+                if (httpCode == HTTP_CODE_OK) {
+                    String payload = http.getString();
+                    Logger::info("TRANSPORT", "Location search response received");
+                    
+                    results = OjpParser::parseLocationSearchResponse(payload);
+                    Logger::printf("TRANSPORT", "Found %d stops", results.size());
+                } else {
+                    Logger::printf("TRANSPORT", "HTTP Error: %d", httpCode);
+                    if (httpCode == 403) {
+                        Logger::error("TRANSPORT", "API Key invalid or not yet active.");
+                    }
+                }
+            } else {
+                Logger::printf("TRANSPORT", "HTTP Connection failed: %s", http.errorToString(httpCode).c_str());
+            }
+            
+            http.end();
+        }
+        delete client;
+    }
+    
+    return results;
+}
+
 void TransportModule::fetchData() {
     if (WiFi.status() != WL_CONNECTED) {
         Logger::info("TRANSPORT", "Wifi not connected, skipping update");

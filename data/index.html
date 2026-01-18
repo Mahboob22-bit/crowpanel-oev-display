@@ -35,14 +35,16 @@
         <div id="app-config-section" class="panel" style="display:none;">
             <h2>ÖV Daten</h2>
             
-            <div class="form-group">
-                <label>Haltestelle Name:</label>
-                <input type="text" id="st_name" name="station_name">
+            <div class="form-group search-wrapper">
+                <label>Haltestelle suchen:</label>
+                <input type="text" id="stop-search" placeholder="z.B. Bern, Zürich HB..." autocomplete="off">
+                <div id="stop-results" class="dropdown-list"></div>
             </div>
             <div class="form-group">
-                <label>Haltestelle ID:</label>
-                <input type="text" id="st_id" name="station_id">
-                <small><a href="https://transport.opendata.ch/docs.html#stationboard" target="_blank">ID suchen</a></small>
+                <label>Ausgewählte Haltestelle:</label>
+                <div id="selected-stop" class="selected-item">Keine Haltestelle ausgewählt</div>
+                <input type="hidden" id="st_name">
+                <input type="hidden" id="st_id">
             </div>
 
             <h3>Linie 1</h3>

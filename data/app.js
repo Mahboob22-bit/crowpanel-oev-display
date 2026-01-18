@@ -1,8 +1,107 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadStatus();
+    setupStopSearch();
 });
 
 let isConfigured = false;
+
+// =====================
+// Debounce Utility
+// =====================
+function debounce(fn, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+// =====================
+// Stop Search Functions
+// =====================
+function setupStopSearch() {
+    const searchInput = document.getElementById('stop-search');
+    if (!searchInput) return;
+    
+    const debouncedSearch = debounce(async (query) => {
+        if (query.length < 2) {
+            hideStopResults();
+            return;
+        }
+        await searchStops(query);
+    }, 300);
+    
+    searchInput.addEventListener('input', (e) => {
+        debouncedSearch(e.target.value.trim());
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const wrapper = document.querySelector('.search-wrapper');
+        if (wrapper && !wrapper.contains(e.target)) {
+            hideStopResults();
+        }
+    });
+}
+
+async function searchStops(query) {
+    const resultsDiv = document.getElementById('stop-results');
+    resultsDiv.innerHTML = '<div class="dropdown-item loading">Suche...</div>';
+    resultsDiv.style.display = 'block';
+    
+    try {
+        const res = await fetch(`/api/stops/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        if (data.error) {
+            resultsDiv.innerHTML = `<div class="dropdown-item error">${data.error}</div>`;
+            return;
+        }
+        
+        renderStopResults(data.results || []);
+    } catch (e) {
+        console.error('Stop search error:', e);
+        resultsDiv.innerHTML = '<div class="dropdown-item error">Fehler bei der Suche</div>';
+    }
+}
+
+function renderStopResults(results) {
+    const resultsDiv = document.getElementById('stop-results');
+    
+    if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="dropdown-item">Keine Ergebnisse</div>';
+        return;
+    }
+    
+    resultsDiv.innerHTML = '';
+    results.forEach(stop => {
+        const div = document.createElement('div');
+        div.className = 'dropdown-item';
+        div.innerHTML = `<strong>${stop.name}</strong><span class="location">${stop.location || ''}</span>`;
+        div.onclick = () => selectStop(stop.id, stop.name);
+        resultsDiv.appendChild(div);
+    });
+}
+
+function selectStop(id, name) {
+    document.getElementById('st_id').value = id;
+    document.getElementById('st_name').value = name;
+    
+    const selectedDiv = document.getElementById('selected-stop');
+    selectedDiv.innerHTML = `<strong>${name}</strong> <span class="stop-id">(${id})</span>`;
+    selectedDiv.classList.add('has-selection');
+    
+    hideStopResults();
+    document.getElementById('stop-search').value = '';
+}
+
+function hideStopResults() {
+    const resultsDiv = document.getElementById('stop-results');
+    if (resultsDiv) {
+        resultsDiv.style.display = 'none';
+        resultsDiv.innerHTML = '';
+    }
+}
 
 async function loadStatus() {
     try {
@@ -27,6 +126,9 @@ async function loadStatus() {
             document.getElementById('wifi-section').style.display = 'none'; // Optional: Wifi ausblenden wenn verbunden? Oder lassen zum Ändern?
             // Lassen wir es da, aber vielleicht zugeklappt. Für jetzt: Einfach alles anzeigen wenn verbunden.
             document.getElementById('wifi-section').style.display = 'block';
+            
+            // Load current config into form fields
+            loadCurrentConfig(data);
         } else {
             // Setup Mode
             document.getElementById('app-config-section').style.display = 'none';
@@ -34,6 +136,30 @@ async function loadStatus() {
 
     } catch (e) {
         console.error('Status Error', e);
+    }
+}
+
+function loadCurrentConfig(data) {
+    // Station
+    if (data.station && data.station.id) {
+        document.getElementById('st_id').value = data.station.id;
+        document.getElementById('st_name').value = data.station.name;
+        
+        const selectedDiv = document.getElementById('selected-stop');
+        selectedDiv.innerHTML = `<strong>${data.station.name}</strong> <span class="stop-id">(${data.station.id})</span>`;
+        selectedDiv.classList.add('has-selection');
+    }
+    
+    // Line 1
+    if (data.line1) {
+        document.getElementById('l1_name').value = data.line1.name || '';
+        document.getElementById('l1_dir').value = data.line1.dir || '';
+    }
+    
+    // Line 2
+    if (data.line2) {
+        document.getElementById('l2_name').value = data.line2.name || '';
+        document.getElementById('l2_dir').value = data.line2.dir || '';
     }
 }
 

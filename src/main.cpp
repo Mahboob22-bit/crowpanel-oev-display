@@ -84,7 +84,7 @@ void setup() {
     timeModule.begin(displayEventQueue);
 
     // Web Config
-    webConfigModule.begin(&configStore, &wifiManager);
+    webConfigModule.begin(&configStore, &wifiManager, &transportModule);
 
     // System Monitor
     systemMonitor.begin();

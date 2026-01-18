@@ -20,6 +20,9 @@ public:
     void triggerUpdate();
 
     std::vector<Departure> getDepartures();
+    
+    // Synchrone Haltestellensuche (blockiert bis Antwort da)
+    std::vector<StopSearchResult> searchStops(const String& query);
 
 private:
     static void taskCode(void* pvParameters);
