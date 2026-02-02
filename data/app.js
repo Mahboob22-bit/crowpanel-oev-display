@@ -122,7 +122,8 @@ function renderStopResults(results) {
     results.forEach(stop => {
         const div = document.createElement('div');
         div.className = 'dropdown-item';
-        div.innerHTML = `<strong>${stop.name}</strong><span class="location">${stop.location || ''}</span>`;
+        // Nur Stationsname anzeigen, ohne Ortsnamen
+        div.innerHTML = `<strong>${stop.name}</strong>`;
         div.onclick = () => selectStop(stop.id, stop.name);
         resultsDiv.appendChild(div);
     });

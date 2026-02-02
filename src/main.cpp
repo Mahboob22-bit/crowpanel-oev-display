@@ -8,6 +8,7 @@
 #include "System/SystemMonitor.h"
 #include "Transport/TransportModule.h"
 #include "Core/ConfigStore.h"
+#include "Core/StringUtils.h"
 #include "Web/WebConfigModule.h"
 #include "Time/TimeModule.h"
 #include "Core/SystemEvents.h"
@@ -72,7 +73,9 @@ void setup() {
     // Initialen Stationsnamen setzen
     StationConfig station = configStore.getStation();
     if (station.name.length() > 0) {
-        displayManager.setStationName(station.name);
+        // Nur Stationsname ohne Ortsangabe
+        String shortName = StringUtils::getStationNameOnly(station.name);
+        displayManager.setStationName(shortName);
     } else {
         displayManager.setStationName("Nicht konfiguriert");
     }

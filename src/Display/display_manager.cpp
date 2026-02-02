@@ -2,6 +2,7 @@
 #include "display_manager.h"
 #include "crowpanel_pins.h"
 #include "../Logger/Logger.h"
+#include "../Core/StringUtils.h"
 #include <Fonts/FreeMonoBold12pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
@@ -227,9 +228,12 @@ void DisplayManager::drawErrorScreen() {
 
     display->setFont(&FreeSans9pt7b);
     
+    // Konvertiere Fehlermeldung
+    String errorASCII = StringUtils::toASCII(errorMessage);
+    
     // Split message if too long (simple approach)
     display->setCursor(30, 120);
-    display->println(errorMessage);
+    display->println(errorASCII);
     
     display->setCursor(30, 200);
     display->println("Versuche Neustart...");
@@ -310,15 +314,19 @@ void DisplayManager::drawInfoScreen() {
 // --- Helpers ---
 
 void DisplayManager::drawHeader(String title, String rightText) {
+    // Konvertiere Umlaute zu ASCII
+    String titleASCII = StringUtils::toASCII(title);
+    String rightTextASCII = StringUtils::toASCII(rightText);
+    
     // Left: Title
     display->setFont(&FreeMonoBold12pt7b);
     display->setCursor(5, 30);
-    display->print(title.substring(0, 15)); // Basic truncate
+    display->print(titleASCII.substring(0, 15)); // Basic truncate
 
     // Calculate Right Text Size
     display->setFont(&FreeSansBold9pt7b);
     int16_t tbx, tby; uint16_t tbw, tbh;
-    display->getTextBounds(rightText, 0, 0, &tbx, &tby, &tbw, &tbh);
+    display->getTextBounds(rightTextASCII, 0, 0, &tbx, &tby, &tbw, &tbh);
     
     int wifiWidth = 24;
     int gap = 10;
@@ -340,19 +348,22 @@ void DisplayManager::drawHeader(String title, String rightText) {
 
     // Right: Text (Time)
     display->setCursor(rightTextX, 30);
-    display->print(rightText);
+    display->print(rightTextASCII);
 
     // Thick Line
     display->fillRect(0, 40, 400, 3, GxEPD_BLACK);
 }
 
 void DisplayManager::drawFooter(String status) {
+    // Konvertiere Umlaute
+    String statusASCII = StringUtils::toASCII(status);
+    
     // Thin Line
     display->drawLine(0, 275, 400, 275, GxEPD_BLACK);
 
     display->setFont(&FreeSans9pt7b);
     display->setCursor(5, 295);
-    display->print(status);
+    display->print(statusASCII);
 }
 
 void DisplayManager::drawInvertedBadge(int x, int y, int w, int h, String text) {
@@ -372,13 +383,17 @@ void DisplayManager::drawInvertedBadge(int x, int y, int w, int h, String text) 
 }
 
 void DisplayManager::drawDepartureRow(int y, const Departure& dep) {
+    // Konvertiere Umlaute
+    String lineASCII = StringUtils::toASCII(dep.line);
+    String directionASCII = StringUtils::toASCII(dep.direction);
+    
     // Line Badge
-    drawInvertedBadge(10, y + 5, 50, 40, dep.line);
+    drawInvertedBadge(10, y + 5, 50, 40, lineASCII);
 
     // Destination
     display->setFont(&FreeSansBold9pt7b);
     display->setCursor(70, y + 30);
-    display->print(dep.direction.substring(0, 18)); // Truncate
+    display->print(directionASCII.substring(0, 18)); // Truncate
 
     // Time
     // Calculate minutes difference
