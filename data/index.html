@@ -31,9 +31,18 @@
             </div>
         </div>
 
+        <!-- Live Departures Display (Only visible if configured) -->
+        <div id="live-departures-section" class="panel" style="display:none;">
+            <h2>Aktuelle Abfahrten</h2>
+            <div id="live-departures-content">
+                <div class="loading-spinner">Lade Abfahrten...</div>
+            </div>
+            <button onclick="refreshDepartures()" style="margin-top: 10px;">🔄 Aktualisieren</button>
+        </div>
+
         <!-- App Config Section (Only visible if connected) -->
         <div id="app-config-section" class="panel" style="display:none;">
-            <h2>ÖV Daten</h2>
+            <h2>ÖV Daten konfigurieren</h2>
             
             <div class="form-group search-wrapper">
                 <label>Haltestelle suchen:</label>
@@ -47,24 +56,31 @@
                 <input type="hidden" id="st_id">
             </div>
 
-            <h3>Linie 1</h3>
-            <div class="form-group">
-                <label>Name:</label>
-                <input type="text" id="l1_name" name="l1_name">
-            </div>
-            <div class="form-group">
-                <label>Richtung:</label>
-                <input type="text" id="l1_dir" name="l1_dir">
-            </div>
+            <div id="favorite-stops"></div>
 
-            <h3>Linie 2</h3>
-            <div class="form-group">
-                <label>Name:</label>
-                <input type="text" id="l2_name" name="l2_name">
-            </div>
-            <div class="form-group">
-                <label>Richtung:</label>
-                <input type="text" id="l2_dir" name="l2_dir">
+            <div id="lines-section" style="display:none;">
+                <h3>Linie 1</h3>
+                <div class="form-group">
+                    <label>Linie auswählen:</label>
+                    <div id="line1-loading" class="loading-spinner" style="display:none;">Lade Linien...</div>
+                    <select id="l1_select" style="display:none;">
+                        <option value="">Bitte wählen...</option>
+                    </select>
+                    <input type="hidden" id="l1_name">
+                    <input type="hidden" id="l1_dir">
+                </div>
+
+                <h3>Linie 2</h3>
+                <div class="form-group">
+                    <label>Linie auswählen:</label>
+                    <select id="l2_select" style="display:none;">
+                        <option value="">Bitte wählen...</option>
+                    </select>
+                    <input type="hidden" id="l2_name">
+                    <input type="hidden" id="l2_dir">
+                </div>
+
+                <div id="departure-preview"></div>
             </div>
         </div>
         

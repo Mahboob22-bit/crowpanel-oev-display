@@ -111,7 +111,8 @@ button:hover { background-color: #d0d0d0; }
     border-bottom: none;
 }
 
-.dropdown-item:hover {
+.dropdown-item:hover,
+.dropdown-item.highlighted {
     background-color: #f0f7ff;
 }
 
@@ -154,4 +155,352 @@ button:hover { background-color: #d0d0d0; }
 .selected-item .stop-id {
     color: #666;
     font-size: 0.85em;
+}
+
+/* Line Selection Styles */
+select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+optgroup {
+    font-weight: bold;
+    font-style: normal;
+}
+
+.line-icon {
+    font-size: 1.2em;
+    margin-right: 5px;
+}
+
+.line-icon.tram { color: #D32F2F; }
+.line-icon.bus { color: #1976D2; }
+.line-icon.train { color: #388E3C; }
+.line-icon.metro { color: #F57C00; }
+.line-icon.rail { color: #7B1FA2; }
+
+/* Loading Spinner */
+.loading-spinner {
+    text-align: center;
+    padding: 10px;
+    color: #666;
+    font-style: italic;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.toast.error {
+    background: #dc3545;
+}
+
+.toast.success {
+    background: #28a745;
+}
+
+/* Favorite Stops */
+#favorite-stops {
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.favorite-chip {
+    display: inline-flex;
+    align-items: center;
+    background: #e8f4e8;
+    border: 1px solid #28a745;
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.favorite-chip:hover {
+    background: #d4edda;
+}
+
+.favorite-chip::before {
+    content: '⭐';
+    margin-right: 5px;
+}
+
+/* Departure Preview */
+#departure-preview {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: none;
+}
+
+#departure-preview.show {
+    display: block;
+}
+
+.preview-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.preview-departure {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.preview-departure:last-child {
+    border-bottom: none;
+}
+
+.preview-time {
+    font-size: 1.2em;
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Live Departures Display */
+#live-departures-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#live-departures-section h2 {
+    border-bottom-color: rgba(255,255,255,0.3);
+    color: white;
+}
+
+#live-departures-content {
+    min-height: 200px;
+}
+
+.station-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+.station-header h3 {
+    margin: 0;
+    font-size: 1.4em;
+}
+
+.configured-line {
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.line-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.line-title {
+    font-weight: bold;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.line-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 16px;
+    color: white;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.line-direction {
+    color: #666;
+    flex: 1;
+}
+
+.departure-list {
+    margin-top: 10px;
+}
+
+.departure-item {
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin: 5px 0;
+    font-size: 0.95em;
+}
+
+.no-departures {
+    color: #999;
+    font-style: italic;
+    padding: 10px;
+    text-align: center;
+}
+
+.all-departures {
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.all-departures h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.departure-line-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    margin: 5px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.line-frequency {
+    margin-left: auto;
+    background: #e0e0e0;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.update-time {
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.no-data,
+.error-message {
+    text-align: center;
+    padding: 30px;
+    font-size: 1.1em;
+}
+
+.error-message {
+    color: #ff6b6b;
+}
+
+/* Mobile Optimierung */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 15px;
+        border-radius: 4px;
+    }
+    
+    h1 {
+        font-size: 1.5em;
+    }
+    
+    h2 {
+        font-size: 1.2em;
+    }
+    
+    /* Touch-freundlichere Buttons */
+    button {
+        min-height: 44px;
+        font-size: 16px;
+    }
+    
+    .primary-btn {
+        min-height: 48px;
+        font-size: 18px;
+    }
+    
+    /* Größere Touch-Targets für Dropdown-Items */
+    .dropdown-item {
+        padding: 14px 12px;
+        font-size: 16px;
+    }
+    
+    .wifi-item {
+        padding: 12px;
+        font-size: 16px;
+    }
+    
+    /* Bessere Dropdown-Performance auf Mobile */
+    .dropdown-list {
+        max-height: 300px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Input-Felder größer */
+    input[type="text"],
+    input[type="password"],
+    select {
+        font-size: 16px; /* Verhindert Zoom auf iOS */
+        min-height: 44px;
+    }
+    
+    /* Favoriten-Chips größer auf Mobile */
+    .favorite-chip {
+        padding: 8px 14px;
+        font-size: 1em;
+        min-height: 36px;
+    }
+    
+    /* Toast auf Mobile nach oben verschieben */
+    .toast {
+        bottom: 80px;
+        left: 10px;
+        right: 10px;
+        text-align: center;
+    }
 }

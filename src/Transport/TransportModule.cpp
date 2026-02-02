@@ -154,6 +154,84 @@ std::vector<StopSearchResult> TransportModule::searchStops(const String& query) 
     return results;
 }
 
+std::vector<LineInfo> TransportModule::getAvailableLines(const String& stopId) {
+    std::vector<LineInfo> lines;
+    
+    if (WiFi.status() != WL_CONNECTED) {
+        Logger::info("TRANSPORT", "Wifi not connected, cannot get lines");
+        return lines;
+    }
+    
+    if (stopId.length() == 0) {
+        Logger::info("TRANSPORT", "Empty stop ID");
+        return lines;
+    }
+    
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (client) {
+        client->setInsecure();
+        
+        HTTPClient http;
+        
+        if (http.begin(*client, OJP_API_URL)) {
+            http.addHeader("Content-Type", "application/xml");
+            http.addHeader("Authorization", "Bearer " + String(OJP_API_KEY));
+            http.addHeader("User-Agent", "CrowPanel-OEV-Display/1.0");
+            
+            // Request mit höherem Limit um mehr Linien zu finden
+            String requestBody = OjpParser::buildRequestXml(stopId, "CrowPanel", 50);
+            Logger::printf("TRANSPORT", "Getting available lines for stop: %s", stopId.c_str());
+            
+            int httpCode = http.POST(requestBody);
+            
+            if (httpCode > 0) {
+                if (httpCode == HTTP_CODE_OK) {
+                    String payload = http.getString();
+                    Logger::info("TRANSPORT", "Lines response received");
+                    
+                    // Parse Departures und extrahiere Linien-Info
+                    std::vector<Departure> departures = OjpParser::parseResponse(payload);
+                    
+                    // Dedupliziere Linien (gleiche Linie + Richtung + Typ)
+                    for (const auto& dep : departures) {
+                        bool exists = false;
+                        for (const auto& existing : lines) {
+                            if (existing.line == dep.line && 
+                                existing.direction == dep.direction && 
+                                existing.type == dep.type) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!exists && dep.line.length() > 0) {
+                            LineInfo info;
+                            info.line = dep.line;
+                            info.direction = dep.direction;
+                            info.type = dep.type;
+                            lines.push_back(info);
+                        }
+                    }
+                    
+                    Logger::printf("TRANSPORT", "Found %d unique lines", lines.size());
+                } else {
+                    Logger::printf("TRANSPORT", "HTTP Error: %d", httpCode);
+                    if (httpCode == 403) {
+                        Logger::error("TRANSPORT", "API Key invalid or not yet active.");
+                    }
+                }
+            } else {
+                Logger::printf("TRANSPORT", "HTTP Connection failed: %s", http.errorToString(httpCode).c_str());
+            }
+            
+            http.end();
+        }
+        delete client;
+    }
+    
+    return lines;
+}
+
 void TransportModule::fetchData() {
     if (WiFi.status() != WL_CONNECTED) {
         Logger::info("TRANSPORT", "Wifi not connected, skipping update");

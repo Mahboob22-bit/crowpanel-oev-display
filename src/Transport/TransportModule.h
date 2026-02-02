@@ -23,6 +23,9 @@ public:
     
     // Synchrone Haltestellensuche (blockiert bis Antwort da)
     std::vector<StopSearchResult> searchStops(const String& query);
+    
+    // Synchrone Linienabfrage für eine Haltestelle (blockiert bis Antwort da)
+    std::vector<LineInfo> getAvailableLines(const String& stopId);
 
 private:
     static void taskCode(void* pvParameters);

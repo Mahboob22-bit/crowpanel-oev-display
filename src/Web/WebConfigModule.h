@@ -28,6 +28,8 @@ private:
     void handleStatus(AsyncWebServerRequest *request);
     void handleConfigSave(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
     void handleStopSearch(AsyncWebServerRequest *request);
+    void handleLineSearch(AsyncWebServerRequest *request);
+    void handleDepartures(AsyncWebServerRequest *request);
 };
 
 #endif // WEB_CONFIG_MODULE_H

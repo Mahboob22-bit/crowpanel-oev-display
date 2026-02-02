@@ -23,6 +23,12 @@ struct StopSearchResult {
     String topographicPlace;  // z.B. "Zürich"
 };
 
+struct LineInfo {
+    String line;        // z.B. "10"
+    String direction;   // z.B. "Dornach"
+    String type;        // bus, tram, train, metro, etc.
+};
+
 #endif // TRANSPORT_TYPES_H
 
 

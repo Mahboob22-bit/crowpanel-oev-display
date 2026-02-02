@@ -73,6 +73,16 @@ void WebConfigModule::setupRoutes() {
         this->handleStopSearch(request);
     });
     
+    // API: Line Search (GET) - Verwende Query-Parameter statt URL-Parameter
+    server.on("/api/lines", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        this->handleLineSearch(request);
+    });
+    
+    // API: Departures (GET) - Liefert aktuelle Abfahrten vom TransportModule
+    server.on("/api/departures", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        this->handleDepartures(request);
+    });
+    
     // Static Files - MUSS am Ende stehen, da "/" alles matched
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 }
@@ -258,6 +268,89 @@ void WebConfigModule::handleStopSearch(AsyncWebServerRequest *request) {
         obj["name"] = stop.name;
         obj["location"] = stop.topographicPlace;
     }
+    
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
+void WebConfigModule::handleLineSearch(AsyncWebServerRequest *request) {
+    // Extrahiere stopId aus Query-Parameter (z.B. /api/lines?stopId=8503000)
+    if (!request->hasParam("stopId")) {
+        request->send(400, "application/json", "{\"error\":\"Missing stopId parameter\"}");
+        return;
+    }
+    
+    String stopId = request->getParam("stopId")->value();
+    
+    if (stopId.length() == 0) {
+        request->send(400, "application/json", "{\"error\":\"Empty stop ID\"}");
+        return;
+    }
+    
+    if (!transportModule) {
+        request->send(500, "application/json", "{\"error\":\"TransportModule not available\"}");
+        return;
+    }
+    
+    Logger::printf("WEB", "Line search request for stop: %s", stopId.c_str());
+    
+    std::vector<LineInfo> lines = transportModule->getAvailableLines(stopId);
+    
+    JsonDocument doc;
+    JsonArray linesArray = doc["lines"].to<JsonArray>();
+    
+    for (const auto& line : lines) {
+        JsonObject obj = linesArray.add<JsonObject>();
+        obj["line"] = line.line;
+        obj["dir"] = line.direction;
+        obj["type"] = line.type;
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
+void WebConfigModule::handleDepartures(AsyncWebServerRequest *request) {
+    if (!transportModule) {
+        request->send(500, "application/json", "{\"error\":\"TransportModule not available\"}");
+        return;
+    }
+    
+    Logger::info("WEB", "Departures request");
+    
+    // Hole die aktuellen Abfahrten vom TransportModule
+    std::vector<Departure> departures = transportModule->getDepartures();
+    
+    JsonDocument doc;
+    JsonArray depsArray = doc["departures"].to<JsonArray>();
+    
+    // Aktuelle Zeit für Berechnung
+    time_t now;
+    time(&now);
+    
+    for (const auto& dep : departures) {
+        JsonObject obj = depsArray.add<JsonObject>();
+        obj["line"] = dep.line;
+        obj["direction"] = dep.direction;
+        obj["type"] = dep.type;
+        
+        // Berechne Minuten bis Abfahrt
+        time_t depTime = dep.getEffectiveTime();
+        double diffSeconds = difftime(depTime, now);
+        int diffMin = (int)(diffSeconds / 60);
+        
+        if (diffMin < 0) diffMin = 0;
+        obj["minutes"] = diffMin;
+        
+        // Timestamp für Debugging
+        obj["timestamp"] = (long)depTime;
+    }
+    
+    // Füge Metadaten hinzu
+    doc["count"] = departures.size();
+    doc["timestamp"] = (long)now;
     
     String response;
     serializeJson(doc, response);
