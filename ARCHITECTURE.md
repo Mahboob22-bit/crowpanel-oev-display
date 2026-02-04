@@ -53,11 +53,19 @@ Die Konfigurationsoberfläche ist eine leichtgewichtige Web-App (Vanilla JS), di
 
 ### 3.1 Struktur
 
-*   **API Kommunikation:** Direkte `fetch` Calls an die REST-API (`/api/config`, `/api/scan`, `/api/status`, `/api/reset`, `/api/stops/search`).
+*   **API Kommunikation:** Direkte `fetch` Calls an die REST-API (`/api/config`, `/api/scan`, `/api/status`, `/api/reset`, `/api/stops/search`, `/api/lines`, `/api/departures`).
 *   **Logik:** `app.js` steuert den Ablauf.
 *   **Views:** Dynamische DOM-Manipulation in `index.html` basierend auf dem Status (AP-Mode vs. Connected).
+*   **Features:**
+  - Intelligente Linienauswahl via Dropdown (automatisch geladen nach Haltestellenauswahl)
+  - Live-Abfahrtsanzeige (zeigt dieselben Daten wie das E-Paper Display)
+  - Favoriten-Feature (LocalStorage-basiert, letzte 5 Haltestellen)
+  - Keyboard-Navigation (Pfeiltasten, Enter, Escape)
+  - Toast-Notifications statt Browser-Alerts
+  - Mobile-optimiert mit Touch-Targets
+  - Auto-Refresh alle 30 Sekunden für Live-Daten
 
-### 3.2 Haltestellensuche
+### 3.2 Haltestellensuche & Linienauswahl
 
 ```mermaid
 sequenceDiagram
@@ -77,7 +85,33 @@ sequenceDiagram
     WebConfig-->>Frontend: JSON Response
     Frontend->>User: Zeigt Dropdown mit Ergebnissen
     User->>Frontend: Waehlt Haltestelle
-    Frontend->>Frontend: Fuellt st_name und st_id Felder
+    Frontend->>WebConfig: GET /api/lines?stopId=8507000
+    WebConfig->>Transport: getAvailableLines("8507000")
+    Transport->>OJP: StopEventRequest (limit=50)
+    OJP-->>Transport: XML mit Departures
+    Transport-->>WebConfig: Deduplizierte LineInfo
+    WebConfig-->>Frontend: JSON mit Linien
+    Frontend->>User: Zeigt gruppierte Linien-Dropdowns
+```
+
+### 3.3 Live-Abfahrtsanzeige
+
+Die WebApp zeigt die aktuellen Abfahrten in Echtzeit an:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant WebConfig
+    participant Transport
+    
+    User->>Frontend: Öffnet WebApp
+    Frontend->>WebConfig: GET /api/departures
+    WebConfig->>Transport: getDepartures()
+    Transport-->>WebConfig: vector Departure
+    WebConfig-->>Frontend: JSON mit Abfahrten + Minuten
+    Frontend->>User: Zeigt Live-Daten
+    Note over Frontend: Auto-Refresh alle 30s
 ```
 
 ## 4. Technologie-Stack

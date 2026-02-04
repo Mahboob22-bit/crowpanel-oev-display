@@ -17,6 +17,16 @@ Vollständig konfigurierbar über ein Web-Interface (WLAN, Haltestelle, Linien).
 - **Automatische Updates:** Aktualisiert alle 30 Sekunden (konfigurierbar).
 - **Robust:** Reconnect-Logik, WLAN-Signalstärkeanzeige und visuelle Fehleranzeige.
 
+### Web-Interface
+- **Intelligente Linienauswahl:** Dropdown-Menüs mit automatisch geladenen Linien nach Haltestellenauswahl
+- **Live-Abfahrtsanzeige:** Zeigt dieselben Daten wie das E-Paper Display in Echtzeit
+- **Haltestellensuche:** Autocomplete mit Debouncing und Keyboard-Navigation (↑/↓, Enter, Esc)
+- **Favoriten:** Speichert automatisch die letzten 5 Haltestellen
+- **Verkehrsmittel-Icons:** Visuelle Unterscheidung durch Emojis und Farben (🚋🚌🚆)
+- **Mobile-optimiert:** Touch-freundliche Buttons und responsive Design
+- **Moderne UX:** Toast-Benachrichtigungen, Loading-Spinner, Bestätigungsdialoge
+- **Einfaches Setup:** Gerät erstellt bei Erstnutzung einen Hotspot "CrowPanel-Setup"
+
 ## 🛠 Hardware
 
 - **Board:** Elecrow CrowPanel ESP32-S3 HMI 4.2" E-Paper

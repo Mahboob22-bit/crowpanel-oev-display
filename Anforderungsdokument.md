@@ -76,6 +76,16 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 
 **F-23:** Es gibt einen Info-Screen, der die Konfigurations-URL und (optional) einen QR-Code anzeigt.
 
+**F-24:** Die Web-Oberfläche zeigt die gleichen Abfahrtszeiten wie das Display an (Live-Vorschau mit Auto-Refresh).
+
+**F-25:** Umlaute werden auf dem E-Paper Display korrekt als ASCII-Äquivalente dargestellt (ä→ae, ö→oe, etc.).
+
+**F-26:** Die Linienauswahl erfolgt über Dropdown-Menüs mit automatisch geladenen verfügbaren Linien.
+
+**F-27:** Die Web-Oberfläche unterstützt Keyboard-Navigation (Pfeiltasten, Enter, Escape) für die Haltestellensuche.
+
+**F-28:** Die Web-Oberfläche speichert die letzten 5 Haltestellen als Favoriten im Browser (LocalStorage).
+
 ---
 
 ## 3. Optionale Anforderungen (Nice-to-Have)
@@ -215,4 +225,5 @@ _Keine offenen Fragen - alle Anforderungen sind geklärt._
 | 1.2 | 2024-12 | Manuelles Update per Taster, Input Refactoring | Assistant |
 | 1.3 | 2024-12 | Display Layout (Tabelle, Signalstärke, Info Screen) | Assistant |
 | 1.4 | 2026-01 | Haltestellensuche im Web-Interface, OJP 2.0 Parser-Fix, Zeitzonenkorrektur | Assistant |
+| 1.5 | 2026-02 | WebApp Live-Abfahrten, Umlaute-Konvertierung, Stationsname-Bereinigung | Assistant |
 

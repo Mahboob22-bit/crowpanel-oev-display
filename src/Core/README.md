@@ -57,6 +57,38 @@ LineConfig getLine2();
 void resetToFactory(); // Löscht alle Keys im Namespace
 ```
 
+## StringUtils
+
+Die `StringUtils` Klasse bietet statische Hilfsfunktionen für String-Operationen.
+
+### Umlaute-Konvertierung
+
+Da E-Paper Displays mit Standard-Fonts keine UTF-8 Zeichen unterstützen, konvertiert `toASCII()` deutsche Umlaute zu ASCII-Äquivalenten:
+
+| Original | Ersetzt durch |
+|----------|---------------|
+| ä | ae |
+| ö | oe |
+| ü | ue |
+| ß | ss |
+| é, è, ê | e |
+| à | a |
+
+**Beispiel:**
+```cpp
+String text = StringUtils::toASCII("Zürich HB");
+// Ergebnis: "Zuerich HB"
+```
+
+### Stationsname-Bereinigung
+
+`getStationNameOnly()` extrahiert nur den Stationsnamen ohne Ortsangabe:
+
+```cpp
+String name = StringUtils::getStationNameOnly("Zürich, Bucheggplatz");
+// Ergebnis: "Bucheggplatz"
+```
+
 ## SystemEvents
 
 Die Datei `SystemEvents.h` definiert alle System-Events zentral, um zirkuläre Abhängigkeiten zu vermeiden.

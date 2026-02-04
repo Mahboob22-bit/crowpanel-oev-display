@@ -17,8 +17,28 @@ Das Modul startet einen asynchronen Webserver (`ESPAsyncWebServer`) auf Port 80 
 | `GET` | `/api/scan` | Startet einen asynchronen WLAN-Scan. |
 | `GET` | `/api/scan-results` | Liefert die Ergebnisse des WLAN-Scans. |
 | `GET` | `/api/stops/search?q=...` | Sucht Haltestellen via OJP API (min. 2 Zeichen). |
+| `GET` | `/api/lines?stopId=...` | Liefert verfügbare Linien einer Haltestelle. |
+| `GET` | `/api/departures` | Liefert aktuelle Abfahrten (gleiche Daten wie auf dem Display). |
 | `POST` | `/api/config` | Speichert neue Konfiguration (WLAN, Haltestelle, etc.) und startet neu. |
 | `POST` | `/api/reset` | Führt einen Factory Reset durch. |
+
+### Live-Abfahrten
+
+Der Endpunkt `/api/departures` liefert die aktuellen Abfahrten direkt vom `TransportModule`:
+
+**Response:**
+```json
+{
+  "departures": [
+    {"line": "10", "direction": "Flueh, Station", "type": "tram", "minutes": 3},
+    {"line": "10", "direction": "Dornach Bahnhof", "type": "tram", "minutes": 8}
+  ],
+  "count": 4,
+  "timestamp": 1707000000
+}
+```
+
+Dies sind dieselben Daten, die auch auf dem E-Paper Display angezeigt werden.
 
 ### Haltestellensuche
 
