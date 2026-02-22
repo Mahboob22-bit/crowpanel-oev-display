@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <GxEPD2_BW.h>
 #include "crowpanel_pins.h"
+#include "version.h"
 #include "Display/display_manager.h"
 #include "Logger/Logger.h"
 #include "Wifi/WifiManager.h"
@@ -12,12 +13,14 @@
 #include "Web/WebConfigModule.h"
 #include "Time/TimeModule.h"
 #include "Core/SystemEvents.h"
+#include "DeviceIdentity/DeviceIdentity.h"
 
 // Display Treiber Instanz (GYE042A87 für CrowPanel 4.2")
 GxEPD2_BW<GxEPD2_420_GYE042A87, GxEPD2_420_GYE042A87::HEIGHT>
   display(GxEPD2_420_GYE042A87(EPD_CS_PIN, EPD_DC_PIN, EPD_RST_PIN, EPD_BUSY_PIN));
 
 // Module
+DeviceIdentity deviceIdentity;
 DisplayManager displayManager(&display);
 WifiManager wifiManager;
 InputManager inputManager;
@@ -36,7 +39,11 @@ void setup() {
 
     Logger::info("SETUP", "\n\n====================================");
     Logger::info("SETUP", "   CrowPanel Swiss Transport Display");
+    Logger::printf("SETUP", "   Firmware Version: %s", FW_VERSION);
     Logger::info("SETUP", "====================================\n");
+
+    // Device Identity
+    deviceIdentity.begin();
 
     // Chip Info
     Logger::printf("SETUP", "Chip: ESP32-S3");
@@ -87,7 +94,7 @@ void setup() {
     timeModule.begin(displayEventQueue);
 
     // Web Config
-    webConfigModule.begin(&configStore, &wifiManager, &transportModule);
+    webConfigModule.begin(&configStore, &wifiManager, &transportModule, &deviceIdentity);
 
     // System Monitor
     systemMonitor.begin();

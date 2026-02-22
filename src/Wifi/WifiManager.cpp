@@ -8,6 +8,10 @@ void WifiManager::begin(ConfigStore* config, QueueHandle_t queue) {
     this->configStore = config;
     this->eventQueue = queue;
 
+    // TCP/IP-Stack (lwIP) synchron initialisieren, damit AsyncWebServer::begin()
+    // danach sicher aufgerufen werden kann – noch bevor der WiFi-Task läuft.
+    WiFi.mode(WIFI_STA);
+
     xTaskCreatePinnedToCore(
         taskCode,
         "WifiTask",

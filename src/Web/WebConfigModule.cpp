@@ -2,12 +2,13 @@
 #include "../Logger/Logger.h"
 #include <ESPmDNS.h>
 
-WebConfigModule::WebConfigModule() : server(80), configStore(NULL), wifiManager(NULL), transportModule(NULL) {}
+WebConfigModule::WebConfigModule() : server(80), configStore(NULL), wifiManager(NULL), transportModule(NULL), deviceIdentity(NULL) {}
 
-void WebConfigModule::begin(ConfigStore* config, WifiManager* wifi, TransportModule* transport) {
+void WebConfigModule::begin(ConfigStore* config, WifiManager* wifi, TransportModule* transport, DeviceIdentity* identity) {
     this->configStore = config;
     this->wifiManager = wifi;
     this->transportModule = transport;
+    this->deviceIdentity = identity;
     
     if(!LittleFS.begin(true)){
         Logger::error("WEB", "An Error has occurred while mounting LittleFS");
@@ -82,6 +83,11 @@ void WebConfigModule::setupRoutes() {
     server.on("/api/departures", HTTP_GET, [this](AsyncWebServerRequest *request) {
         this->handleDepartures(request);
     });
+
+    // API: Device Info (GET)
+    server.on("/api/device", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        this->handleDeviceInfo(request);
+    });
     
     // Static Files - MUSS am Ende stehen, da "/" alles matched
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
@@ -93,6 +99,11 @@ void WebConfigModule::handleStatus(AsyncWebServerRequest *request) {
     doc["ip"] = wifiManager->getIpAddress();
     doc["state"] = (int)wifiManager->getState();
     doc["heap"] = ESP.getFreeHeap();
+    
+    if (deviceIdentity) {
+        doc["device_id"] = deviceIdentity->getDeviceId();
+        doc["fw_version"] = deviceIdentity->getFirmwareVersion();
+    }
     
     // Config Status
     doc["configured"] = configStore->hasWifiConfig();
@@ -352,6 +363,25 @@ void WebConfigModule::handleDepartures(AsyncWebServerRequest *request) {
     doc["count"] = departures.size();
     doc["timestamp"] = (long)now;
     
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+}
+
+void WebConfigModule::handleDeviceInfo(AsyncWebServerRequest *request) {
+    JsonDocument doc;
+
+    if (deviceIdentity) {
+        doc["device_id"] = deviceIdentity->getDeviceId();
+        doc["fw_version"] = deviceIdentity->getFirmwareVersion();
+        doc["flash_mb"] = deviceIdentity->getFlashSizeMB();
+        doc["psram_kb"] = deviceIdentity->getPsramSizeKB();
+    }
+
+    doc["hw"] = "ESP32-S3";
+    doc["heap_free"] = ESP.getFreeHeap();
+    doc["uptime_s"] = (long)(millis() / 1000);
+
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
