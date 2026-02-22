@@ -2,14 +2,14 @@
 
 **Projekt:** Schweizer ÖV-Abfahrtsanzeige auf E-Paper Display  
 **Hardware:** Elecrow CrowPanel 4.2" E-Paper HMI Display (ESP32-S3)  
-**Datum:** Dezember 2024  
-**Version:** 1.0
+**Datum:** Februar 2026  
+**Version:** 2.0
 
 ---
 
 ## 1. Projektziel
 
-Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in der Schweiz anzeigt. Die Anzeige soll über eine Web-Oberfläche konfigurierbar sein und sich automatisch aktualisieren.
+Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in der Schweiz anzeigt. Das Gerät wird als fertiges Produkt verkauft und über eine Web-Oberfläche konfiguriert. Die Firmware ist Open Source, der kommerzielle Mehrwert liegt im vorkonfigurierten Gerät, dem OTA-Update-Service und dem Backend (API-Proxy, OTA-Server). Geräte im Feld werden über OTA-Updates (Over-The-Air) automatisch aktualisiert.
 
 ---
 
@@ -68,8 +68,6 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 
 **F-20:** Das System funktioniert mit allen Haltestellen, die in der Schweizer Transport-API verfügbar sind.
 
-**(Geplant für Serie):** Der API-Zugriff erfolgt später über einen eigenen Proxy-Server, um den API-Key nicht auf dem Endgerät speichern zu müssen. Vorerst hardcodiert.
-
 **F-21:** Das System synchronisiert die Uhrzeit automatisch über NTP.
 
 **F-22:** Das Display zeigt die aktuelle WLAN-Signalstärke an.
@@ -85,6 +83,42 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 **F-27:** Die Web-Oberfläche unterstützt Keyboard-Navigation (Pfeiltasten, Enter, Escape) für die Haltestellensuche.
 
 **F-28:** Die Web-Oberfläche speichert die letzten 5 Haltestellen als Favoriten im Browser (LocalStorage).
+
+### 2.5 OTA-Updates (Over-The-Air)
+
+**F-29:** Das System prüft automatisch nachts (Standard: 02:00–05:00 Uhr) auf neue Firmware-Versionen.
+
+**F-30:** Firmware-Updates werden automatisch im Hintergrund heruntergeladen und installiert, ohne Benutzerinteraktion.
+
+**F-31:** Bei einem fehlgeschlagenen Update führt das System automatisch einen Rollback auf die vorherige Firmware-Version durch.
+
+**F-32:** Der OTA-Server unterstützt Staged Rollouts. Ausgewählte Test-Geräte erhalten Updates zuerst; nach erfolgreicher Validierung werden alle Geräte aktualisiert.
+
+**F-33:** Das Update-Fenster (Uhrzeit, in der Updates geprüft und installiert werden) ist serverseitig konfigurierbar.
+
+**F-34:** Die Web-Oberfläche zeigt die aktuelle Firmware-Version und den letzten Update-Status an (z.B. "Aktuell", "Update verfügbar", "Update fehlgeschlagen").
+
+### 2.6 Geräte-Identität & Versionierung
+
+**F-35:** Jedes Gerät besitzt eine eindeutige Device-ID, die aus der MAC-Adresse des ESP32 abgeleitet wird.
+
+**F-36:** Die Firmware enthält eine semantische Versionsnummer (SemVer: MAJOR.MINOR.PATCH), die zur Laufzeit abfragbar ist.
+
+**F-37:** Das Gerät meldet seine Device-ID und aktuelle Firmware-Version bei jedem Update-Check an den OTA-Server.
+
+### 2.7 API-Proxy
+
+**F-38:** Die ÖV-Daten werden über einen eigenen, selbst gehosteten Proxy-Server bezogen. Das Gerät kommuniziert nicht direkt mit der OJP-API.
+
+**F-39:** Der API-Key für opentransportdata.swiss wird ausschliesslich auf dem Proxy-Server gespeichert und ist zu keinem Zeitpunkt auf dem Endgerät vorhanden.
+
+### 2.8 Sicherheit
+
+**F-40:** Alle Netzwerkkommunikation zwischen Gerät und Backend (OTA-Server, API-Proxy) erfolgt über HTTPS mit Zertifikatsvalidierung.
+
+**F-41:** Firmware-Updates werden kryptographisch signiert. Das Gerät verifiziert die Signatur vor der Installation und lehnt unsignierte oder manipulierte Firmware ab.
+
+**F-42:** Die Web-Oberfläche ist durch ein konfigurierbares Passwort geschützt, um unbefugten Zugriff im lokalen Netzwerk zu verhindern.
 
 ---
 
@@ -126,6 +160,22 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 
 **NF-11:** Das System ist für Dauerbetrieb ausgelegt.
 
+### 4.5 Sicherheit
+
+**NF-12:** Die Firmware wird mit Espressif Secure Boot V2 signiert, um die Integrität sicherzustellen.
+
+**NF-13:** Alle HTTPS-Verbindungen nutzen Root-CA-Validierung. Selbstsignierte Zertifikate ohne Validierung (`setInsecure()`) sind im Produktions-Build nicht erlaubt.
+
+**NF-14:** WiFi-Passwörter werden verschlüsselt im NVS (Non-Volatile Storage) gespeichert.
+
+### 4.6 Entwicklung & Build
+
+**NF-15:** Es gibt ein Entwicklungs-Build-Profil mit USB-Flash, Serial-Debug-Ausgabe und verbose Logging (CORE_DEBUG_LEVEL=3).
+
+**NF-16:** Es gibt ein Produktions-Build-Profil mit OTA-Fähigkeit, reduziertem Logging (CORE_DEBUG_LEVEL=1) und Firmware-Signierung.
+
+**NF-17:** Beide Build-Profile nutzen die gleiche Partitionstabelle, damit die Firmware im Feld sowohl via USB als auch via OTA aktualisiert werden kann.
+
 ---
 
 ## 5. Abgrenzungen (Explizit NICHT enthalten)
@@ -141,6 +191,10 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 **A-05:** Keine Integration mit Smart Home Systemen.
 
 **A-06:** Keine mobile App - nur Web-Oberfläche.
+
+**A-07:** Kein Device-Management-Dashboard im ersten Release. Geräte werden manuell vom Hersteller registriert.
+
+**A-08:** Keine automatische Crash-Telemetrie im ersten Release. Coredumps werden lokal gespeichert und können bei Bedarf manuell ausgelesen werden.
 
 ---
 
@@ -173,18 +227,50 @@ Ein E-Paper Display, das aktuelle Abfahrtszeiten des öffentlichen Verkehrs in d
 3. Gerät kehrt in Ersteinrichtungs-Modus zurück
 4. Siehe UC-01
 
+### UC-05: Automatisches OTA-Update
+1. Gerät prüft nachts (innerhalb des Update-Fensters) den OTA-Server auf eine neue Version
+2. OTA-Server antwortet mit Versionsinformationen und Download-URL
+3. Gerät lädt die signierte Firmware herunter
+4. Gerät verifiziert die Signatur der Firmware
+5. Gerät flasht die neue Firmware auf die inaktive OTA-Partition
+6. Gerät startet neu mit der neuen Firmware
+7. Gerät meldet den erfolgreichen Update-Status an den OTA-Server
+
+### UC-06: Fehlgeschlagenes Update mit Rollback
+1. Gerät lädt ein Update herunter und flasht es (siehe UC-05, Schritte 1–5)
+2. Gerät startet neu mit der neuen Firmware
+3. Die neue Firmware erkennt einen Fehler (z.B. Boot-Loop, keine Netzwerkverbindung)
+4. Nach dem fehlgeschlagenen Boot markiert das System die Partition als ungültig
+5. Gerät startet automatisch mit der vorherigen (funktionierenden) Firmware neu
+6. Gerät meldet den fehlgeschlagenen Update-Status an den OTA-Server
+
+### UC-07: Gerät erstmalig provisionieren (Hersteller)
+1. Hersteller flasht die Firmware und das LittleFS-Dateisystem via USB
+2. Gerät startet und generiert automatisch eine eindeutige Device-ID
+3. Hersteller notiert die Device-ID (z.B. via Serial Monitor oder Display)
+4. Hersteller registriert die Device-ID auf dem OTA-Server
+5. Gerät ist bereit für den Versand an den Kunden
+6. Kunde führt Ersteinrichtung durch (siehe UC-01)
+
 ---
 
 ## 7. Datenmodell (Logisch)
 
 ### Konfiguration
-- WLAN-Zugangsdaten (SSID, Passwort)
+- WLAN-Zugangsdaten (SSID, Passwort — verschlüsselt gespeichert)
 - Haltestelle (Name, ID)
-- API Key (für opentransportdata.swiss)
 - Linie 1 (Bezeichnung, Richtung)
 - Linie 2 (Bezeichnung, Richtung)
 - Sprache
 - Aktualisierungsintervall
+- Web-Passwort (für Zugangsschutz)
+
+### Geräte-Identität
+- Device-ID (eindeutig, abgeleitet aus MAC-Adresse)
+- Firmware-Version (SemVer: MAJOR.MINOR.PATCH)
+- Update-Channel (z.B. "test" oder "stable")
+- Letzter Update-Status (Erfolg/Fehlgeschlagen/Kein Update)
+- Letzter Update-Zeitpunkt
 
 ### Anzuzeigende Daten (pro Linie)
 - Linienbezeichnung
@@ -208,11 +294,19 @@ Das Projekt gilt als erfolgreich, wenn:
 
 ✅ **K-05:** Die Web-Oberfläche auf verschiedenen Geräten (Smartphone, Tablet, PC) funktioniert.
 
+**K-06:** Ein OTA-Update kann erfolgreich vom Server auf das Gerät übertragen, verifiziert und installiert werden.
+
+**K-07:** Bei einem fehlgeschlagenen Update führt das Gerät einen automatischen Rollback auf die vorherige Firmware durch und bleibt funktionsfähig.
+
+**K-08:** Das Gerät bezieht ÖV-Daten ausschliesslich über den API-Proxy, ohne dass ein API-Key auf dem Gerät gespeichert ist.
+
 ---
 
 ## 9. Offene Fragen
 
-_Keine offenen Fragen - alle Anforderungen sind geklärt._
+- **Q-01:** Welche E-Mail-Adresse wird als Support-Kanal für Kunden bei Update-Problemen eingerichtet? (Platzhalter: support@example.com)
+- **Q-02:** Welcher Signatur-Algorithmus soll für die Firmware-Signierung verwendet werden? (Empfehlung: ECDSA mit secp256r1 oder RSA-2048)
+- **Q-03:** Soll Flash Encryption (Verschlüsselung des gesamten Flash-Speichers) zusätzlich zu Secure Boot aktiviert werden?
 
 ---
 
@@ -226,4 +320,5 @@ _Keine offenen Fragen - alle Anforderungen sind geklärt._
 | 1.3 | 2024-12 | Display Layout (Tabelle, Signalstärke, Info Screen) | Assistant |
 | 1.4 | 2026-01 | Haltestellensuche im Web-Interface, OJP 2.0 Parser-Fix, Zeitzonenkorrektur | Assistant |
 | 1.5 | 2026-02 | WebApp Live-Abfahrten, Umlaute-Konvertierung, Stationsname-Bereinigung | Assistant |
+| 2.0 | 2026-02 | OTA-Updates, API-Proxy, Geräte-Identität, Sicherheit, Build-Profile, Provisionierung | Assistant |
 
