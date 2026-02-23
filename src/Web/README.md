@@ -9,18 +9,63 @@ Das Modul startet einen asynchronen Webserver (`ESPAsyncWebServer`) auf Port 80 
 2.  **API Server:** Stellt REST-Endpunkte für das Frontend bereit.
 3.  **mDNS Responder:** Macht das Gerät unter `http://crowpanel.local` im Netzwerk verfügbar.
 
+## Authentifizierung
+
+Endpunkte mit sensiblen Daten sind durch HTTP Basic Auth geschützt (Username: `admin`, Passwort: konfigurierbar via `/api/config` Feld `web_password`).
+
+**Kein Schutz** wenn:
+- Das Gerät im AP-Mode ist (Ersteinrichtung muss funktionieren)
+- Kein Web-Passwort gesetzt ist (Standard nach Factory Reset)
+
+| Endpunkt | Auth erforderlich |
+|----------|------------------|
+| `/api/status` | Ja (wenn Passwort gesetzt) |
+| `/api/device` | Ja (wenn Passwort gesetzt) |
+| `/api/config` (POST) | Ja |
+| `/api/reset` (POST) | Ja |
+| `/api/scan`, `/api/scan-results` | Nein |
+| `/api/departures` | Nein |
+
 ## API Endpunkte
 
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
-| `GET` | `/api/status` | Liefert Systemstatus (IP, Mode, Heap, Config-Status, aktuelle Konfiguration). |
+| `GET` | `/api/status` | Systemstatus (IP, Mode, Heap, Config, `device_id`, `fw_version`). |
+| `GET` | `/api/device` | Geräteinformationen (Device-ID, FW-Version, Flash, PSRAM, Uptime). |
 | `GET` | `/api/scan` | Startet einen asynchronen WLAN-Scan. |
 | `GET` | `/api/scan-results` | Liefert die Ergebnisse des WLAN-Scans. |
-| `GET` | `/api/stops/search?q=...` | Sucht Haltestellen via OJP API (min. 2 Zeichen). |
-| `GET` | `/api/lines?stopId=...` | Liefert verfügbare Linien einer Haltestelle. |
+| `GET` | `/api/stops/search?q=...` | Sucht Haltestellen (min. 2, max. 50 Zeichen). |
+| `GET` | `/api/lines?stopId=...` | Liefert verfügbare Linien einer Haltestelle (max. 20 Zeichen StopId). |
 | `GET` | `/api/departures` | Liefert aktuelle Abfahrten (gleiche Daten wie auf dem Display). |
-| `POST` | `/api/config` | Speichert neue Konfiguration (WLAN, Haltestelle, etc.) und startet neu. |
+| `POST` | `/api/config` | Speichert neue Konfiguration und startet neu (max. 1024 Bytes). |
 | `POST` | `/api/reset` | Führt einen Factory Reset durch. |
+
+### `/api/config` — Akzeptierte Felder
+
+```json
+{
+  "ssid": "...",           // max. 32 Zeichen
+  "password": "...",       // max. 64 Zeichen
+  "web_password": "...",   // max. 64 Zeichen (leer = Schutz deaktivieren)
+  "station": { "name": "...", "id": "..." },
+  "line1": { "name": "...", "dir": "..." },
+  "line2": { "name": "...", "dir": "..." }
+}
+```
+
+### `/api/device` — Response
+
+```json
+{
+  "device_id": "CP-A1B2C3D4E5F6",
+  "fw_version": "1.3.0",
+  "hw": "ESP32-S3",
+  "flash_mb": 8,
+  "psram_kb": 8192,
+  "heap_free": 245000,
+  "uptime_s": 3600
+}
+```
 
 ### Live-Abfahrten
 
@@ -85,5 +130,6 @@ Das Frontend bietet eine interaktive Haltestellensuche mit Autocomplete:
 *   `LittleFS`
 *   `ConfigStore`
 *   `WifiManager`
-*   `TransportModule` (für Haltestellensuche)
+*   `TransportModule` (für Haltestellensuche und Abfahrten)
+*   `DeviceIdentity` (für Geräte-ID und FW-Version)
 

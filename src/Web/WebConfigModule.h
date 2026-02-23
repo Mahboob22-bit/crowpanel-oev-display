@@ -33,6 +33,7 @@ private:
     void handleLineSearch(AsyncWebServerRequest *request);
     void handleDepartures(AsyncWebServerRequest *request);
     void handleDeviceInfo(AsyncWebServerRequest *request);
+    bool checkAuth(AsyncWebServerRequest *request);
 };
 
 #endif // WEB_CONFIG_MODULE_H

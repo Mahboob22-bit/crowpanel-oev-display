@@ -39,6 +39,19 @@ StopEventResult
 
 Da das Modul in einem eigenen Task läuft und von anderen Tasks (z.B. Display) Daten gelesen werden, sind die internen Datenstrukturen (`_departures`, `_apiKey`, `_stationId`) durch einen **Mutex** (`xSemaphoreCreateMutex`) geschützt.
 
+## TLS / HTTPS
+
+Alle Verbindungen zur API laufen über HTTPS. Das Verhalten ist build-abhängig:
+
+*   **Development** (`-DDEV_BUILD` in `platformio.ini`): `setInsecure()` — kein Zertifikat geprüft. Ermöglicht Entwicklung ohne eigenes Zertifikat.
+*   **Production** (kein `DEV_BUILD`): `setCACert(ROOT_CA_CERT)` mit dem ISRG Root X1 Zertifikat aus `include/certs.h` (Let's Encrypt, gültig bis 2035).
+
+Die Logik ist in `configureTLS(WiFiClientSecure* client)` gekapselt.
+
+## Memory Management
+
+`WiFiClientSecure` wird mit `std::make_unique<WiFiClientSecure>()` alloziert (RAII). Der Speicher wird automatisch freigegeben, auch bei Fehlern in `http.begin()` — kein Memory Leak.
+
 ## Abhängigkeiten
 
 *   `WiFiClientSecure`
@@ -46,6 +59,7 @@ Da das Modul in einem eigenen Task läuft und von anderen Tasks (z.B. Display) D
 *   `tinyxml2`
 *   `ConfigStore`
 *   `secrets.h` (Muss `OJP_API_KEY` definieren)
+*   `certs.h` (ISRG Root X1 Root-CA-Zertifikat, für Production-Build)
 
 ## API
 
@@ -63,6 +77,9 @@ void triggerUpdate();
 
 // Synchrone Haltestellensuche (blockiert bis Antwort da)
 std::vector<StopSearchResult> searchStops(const String& query);
+
+// Synchrone Linienabfrage für eine Haltestelle
+std::vector<LineInfo> getAvailableLines(const String& stopId);
 ```
 
 ## Datentypen

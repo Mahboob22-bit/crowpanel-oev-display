@@ -40,12 +40,23 @@ public:
     void setLine2(const String& name, const String& direction);
     LineConfig getLine2();
     
+    // Web Password
+    void setWebPassword(const String& password);
+    String getWebPassword();
+    bool hasWebPassword();
+    
     // Reset
     void resetToFactory();
 
 private:
     Preferences preferences;
     const char* NAMESPACE = "crowpanel";
+
+    // XOR-basierte Verschleierung (kein echtes Krypto — Stepping Stone bis NVS Encryption)
+    String obfuscate(const String& input);
+    String deobfuscate(const String& input);
+    void migratePassword();
+    uint64_t _macKey;
 };
 
 #endif // CONFIG_STORE_H

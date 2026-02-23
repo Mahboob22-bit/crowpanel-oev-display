@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <WiFiClientSecure.h>
 #include "TransportTypes.h"
 #include "../Core/ConfigStore.h"
 #include "../Core/SystemEvents.h"
@@ -43,6 +44,7 @@ private:
     QueueHandle_t eventQueue;
     
     void fetchData();
+    void configureTLS(WiFiClientSecure* client);
 };
 
 #endif // TRANSPORT_MODULE_H

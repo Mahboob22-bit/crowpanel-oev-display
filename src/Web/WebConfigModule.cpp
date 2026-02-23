@@ -2,6 +2,16 @@
 #include "../Logger/Logger.h"
 #include <ESPmDNS.h>
 
+static const size_t LIMIT_CONFIG_PAYLOAD = 1024;
+static const size_t LIMIT_SSID           = 32;
+static const size_t LIMIT_PASSWORD       = 64;
+static const size_t LIMIT_STATION_NAME   = 100;
+static const size_t LIMIT_STATION_ID     = 20;
+static const size_t LIMIT_LINE_NAME      = 20;
+static const size_t LIMIT_DIRECTION      = 100;
+static const size_t LIMIT_SEARCH_QUERY   = 50;
+static const size_t LIMIT_STOP_ID        = 20;
+
 WebConfigModule::WebConfigModule() : server(80), configStore(NULL), wifiManager(NULL), transportModule(NULL), deviceIdentity(NULL) {}
 
 void WebConfigModule::begin(ConfigStore* config, WifiManager* wifi, TransportModule* transport, DeviceIdentity* identity) {
@@ -62,6 +72,7 @@ void WebConfigModule::setupRoutes() {
 
     // API: Factory Reset (POST)
     server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!this->checkAuth(request)) return;
         Logger::info("WEB", "Factory Reset requested via Web");
         this->configStore->resetToFactory();
         request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Resetting...\"}");
@@ -94,6 +105,8 @@ void WebConfigModule::setupRoutes() {
 }
 
 void WebConfigModule::handleStatus(AsyncWebServerRequest *request) {
+    if (!checkAuth(request)) return;
+
     JsonDocument doc;
     
     doc["ip"] = wifiManager->getIpAddress();
@@ -190,9 +203,13 @@ void WebConfigModule::handleScanResults(AsyncWebServerRequest *request) {
 }
 
 void WebConfigModule::handleConfigSave(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-    // Einfaches Handling: Wir nehmen an, dass das JSON in einen Chunk passt.
-    // Für größere Payloads müsste man puffern.
-    
+    if (!checkAuth(request)) return;
+
+    if (total > LIMIT_CONFIG_PAYLOAD) {
+        request->send(413, "application/json", "{\"status\":\"error\",\"message\":\"Payload too large\"}");
+        return;
+    }
+
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, data, len);
     
@@ -204,46 +221,73 @@ void WebConfigModule::handleConfigSave(AsyncWebServerRequest *request, uint8_t *
     
     Logger::info("WEB", "Received new config");
     
-    // Wifi - nur speichern wenn SSID nicht leer ist (Passwort kann leer sein für offene Netzwerke)
     if (doc["ssid"].is<const char*>()) {
         String ssid = doc["ssid"].as<String>();
+        if (ssid.length() > LIMIT_SSID) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"SSID too long\"}");
+            return;
+        }
         if (ssid.length() > 0) {
             String password = doc["password"].is<const char*>() ? doc["password"].as<String>() : "";
+            if (password.length() > LIMIT_PASSWORD) {
+                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Password too long\"}");
+                return;
+            }
             configStore->setWifiCredentials(ssid, password);
-            Logger::printf("WEB", "WiFi credentials updated: %s", ssid.c_str());
+            Logger::info("WEB", "WiFi credentials updated");
         }
     }
     
-    // Station - nur speichern wenn ID nicht leer ist
     if (doc["station"].is<JsonObject>()) {
         JsonObject st = doc["station"];
+        String stName = st["name"].as<String>();
         String stId = st["id"].as<String>();
+        if (stName.length() > LIMIT_STATION_NAME || stId.length() > LIMIT_STATION_ID) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Station data too long\"}");
+            return;
+        }
         if (stId.length() > 0) {
-            configStore->setStation(st["name"], stId);
-            Logger::printf("WEB", "Station updated: %s", st["name"].as<String>().c_str());
+            configStore->setStation(stName, stId);
+            Logger::info("WEB", "Station updated");
         }
     }
     
-    // Lines - nur speichern wenn Name nicht leer ist
     if (doc["line1"].is<JsonObject>()) {
         JsonObject l1 = doc["line1"];
         String l1Name = l1["name"].as<String>();
+        String l1Dir = l1["dir"].as<String>();
+        if (l1Name.length() > LIMIT_LINE_NAME || l1Dir.length() > LIMIT_DIRECTION) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Line 1 data too long\"}");
+            return;
+        }
         if (l1Name.length() > 0) {
-            configStore->setLine1(l1Name, l1["dir"]);
+            configStore->setLine1(l1Name, l1Dir);
         }
     }
     
     if (doc["line2"].is<JsonObject>()) {
         JsonObject l2 = doc["line2"];
         String l2Name = l2["name"].as<String>();
+        String l2Dir = l2["dir"].as<String>();
+        if (l2Name.length() > LIMIT_LINE_NAME || l2Dir.length() > LIMIT_DIRECTION) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Line 2 data too long\"}");
+            return;
+        }
         if (l2Name.length() > 0) {
-            configStore->setLine2(l2Name, l2["dir"]);
+            configStore->setLine2(l2Name, l2Dir);
+        }
+    }
+
+    if (doc["web_password"].is<const char*>()) {
+        String webPw = doc["web_password"].as<String>();
+        if (webPw.length() <= LIMIT_PASSWORD) {
+            configStore->setWebPassword(webPw);
+            Logger::info("WEB", "Web password updated");
         }
     }
     
     request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Saved. Restarting...\"}");
     
-    // Verzögerter Neustart
     delay(1000);
     ESP.restart();
 }
@@ -258,6 +302,11 @@ void WebConfigModule::handleStopSearch(AsyncWebServerRequest *request) {
     
     if (query.length() < 2) {
         request->send(400, "application/json", "{\"error\":\"Query too short (min 2 chars)\"}");
+        return;
+    }
+
+    if (query.length() > LIMIT_SEARCH_QUERY) {
+        request->send(400, "application/json", "{\"error\":\"Query too long\"}");
         return;
     }
     
@@ -296,6 +345,11 @@ void WebConfigModule::handleLineSearch(AsyncWebServerRequest *request) {
     
     if (stopId.length() == 0) {
         request->send(400, "application/json", "{\"error\":\"Empty stop ID\"}");
+        return;
+    }
+
+    if (stopId.length() > LIMIT_STOP_ID) {
+        request->send(400, "application/json", "{\"error\":\"Stop ID too long\"}");
         return;
     }
     
@@ -368,7 +422,22 @@ void WebConfigModule::handleDepartures(AsyncWebServerRequest *request) {
     request->send(200, "application/json", response);
 }
 
+bool WebConfigModule::checkAuth(AsyncWebServerRequest *request) {
+    if (wifiManager->getState() == WIFI_AP_MODE) return true;
+
+    String pw = configStore->getWebPassword();
+    if (pw.length() == 0) return true;
+
+    if (!request->authenticate("admin", pw.c_str())) {
+        request->requestAuthentication();
+        return false;
+    }
+    return true;
+}
+
 void WebConfigModule::handleDeviceInfo(AsyncWebServerRequest *request) {
+    if (!checkAuth(request)) return;
+
     JsonDocument doc;
 
     if (deviceIdentity) {

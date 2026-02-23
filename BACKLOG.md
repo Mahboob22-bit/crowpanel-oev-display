@@ -9,50 +9,40 @@ Dieses Dokument listet alle im Code-Review gefundenen Probleme, priorisiert nach
 
 ## Kritisch — Vor kommerziellem Release zwingend zu lösen
 
-### BL-01: HTTPS-Zertifikatsvalidierung deaktiviert
+### ✅ BL-01: HTTPS-Zertifikatsvalidierung deaktiviert — BEHOBEN (2026-02)
 
 | | |
 |---|---|
-| **Datei** | `src/Transport/TransportModule.cpp` (Zeilen 118, 172, 252) |
-| **Problem** | `client->setInsecure()` deaktiviert die TLS-Zertifikatsvalidierung. Kommentar sagt "Für Development", aber es ist in allen Builds aktiv. |
-| **Risiko** | Anfällig für Man-in-the-Middle-Angriffe. Ein Angreifer könnte manipulierte Daten oder Firmware einschleusen. |
-| **Lösung** | Root-CA-Zertifikat einbetten und `client->setCACert()` verwenden. `setInsecure()` nur im Development-Build erlauben (via `#ifdef`). |
+| **Datei** | `src/Transport/TransportModule.cpp`, `include/certs.h` (neu) |
+| **Lösung umgesetzt** | ISRG Root X1 Zertifikat in `include/certs.h` eingebettet. `configureTLS()`-Methode entscheidet per `#ifdef DEV_BUILD`: im Dev-Build `setInsecure()`, im Production-Build `setCACert(ROOT_CA_CERT)`. Dev-Profil in `platformio.ini` erhält `-DDEV_BUILD`. |
 
-### BL-02: Keine Authentifizierung auf der Web-Oberfläche
+### ✅ BL-02: Keine Authentifizierung auf der Web-Oberfläche — BEHOBEN (2026-02)
+
+| | |
+|---|---|
+| **Datei** | `src/Web/WebConfigModule.cpp/.h`, `src/Core/ConfigStore.cpp/.h` |
+| **Lösung umgesetzt** | HTTP Basic Auth via `checkAuth()`. Passwort konfigurierbar im ConfigStore (`web_pw`). Im AP-Mode und ohne gesetztes Passwort kein Schutz (Ersteinrichtung). Geschützt: `/api/status`, `/api/device`, `/api/config`, `/api/reset`. |
+
+### ✅ BL-03: WiFi-Passwörter im Klartext gespeichert — TEILWEISE BEHOBEN (2026-02)
+
+| | |
+|---|---|
+| **Datei** | `src/Core/ConfigStore.cpp/.h` |
+| **Lösung umgesetzt** | XOR-Verschleierung mit MAC-Adresse als Key, Base64-kodiert im NVS. Automatische Migration bestehender Klartext-Werte. **Hinweis:** Dies ist keine echte Verschlüsselung. Die finale Lösung ist NVS Encryption mit Espressif Flash Encryption — wird mit Secure Boot V2 umgesetzt. |
+
+### ✅ BL-04: Fehlende Input-Validierung auf Server-Seite — BEHOBEN (2026-02)
 
 | | |
 |---|---|
 | **Datei** | `src/Web/WebConfigModule.cpp` |
-| **Problem** | Alle REST-Endpunkte (`/api/config`, `/api/reset`, etc.) sind ohne Authentifizierung zugänglich. |
-| **Risiko** | Jeder im lokalen Netzwerk kann die Konfiguration ändern oder einen Factory-Reset auslösen. |
-| **Lösung** | HTTP Basic Auth oder Token-basierte Authentifizierung einführen. Passwort konfigurierbar via Web-Oberfläche. |
+| **Lösung umgesetzt** | Payload max 1024 Bytes, SSID max 32, Passwort max 64, Suchbegriff max 50, StopId max 20, Station/Line-Felder begrenzt. Alle als `static constexpr` Konstanten definiert. |
 
-### BL-03: WiFi-Passwörter im Klartext gespeichert
+### ✅ BL-05: Memory Leak in TransportModule — BEHOBEN (2026-02)
 
 | | |
 |---|---|
-| **Datei** | `src/Core/ConfigStore.cpp` (Zeilen 21–24, 27–32) |
-| **Problem** | WiFi-Passwörter werden unverschlüsselt in NVS (Preferences) gespeichert. |
-| **Risiko** | Bei physischem Zugang zum Gerät können die WiFi-Zugangsdaten ausgelesen werden. |
-| **Lösung** | WiFi-Passwörter mit AES-256 verschlüsseln bevor sie in NVS geschrieben werden. Alternativ: ESP32 NVS Encryption aktivieren. |
-
-### BL-04: Fehlende Input-Validierung auf Server-Seite
-
-| | |
-|---|---|
-| **Datei** | `src/Web/WebConfigModule.cpp` (Zeilen 181–204, 240–251) |
-| **Problem** | Keine Längenbegrenzung bei SSID, Passwort und Konfigurationsdaten. Nur minimale Prüfung bei Haltestellensuche (min 2 Zeichen). |
-| **Risiko** | Überlange Eingaben können Speicherprobleme verursachen (Heap-Overflow, OOM). |
-| **Lösung** | Maximale Längen definieren und validieren: SSID (32), Passwort (64), Suchbegriff (50). JSON-Payload-Grösse begrenzen. |
-
-### BL-05: Memory Leak in TransportModule
-
-| | |
-|---|---|
-| **Datei** | `src/Transport/TransportModule.cpp` (Zeilen 116, 170, 249) |
-| **Problem** | `new WiFiClientSecure` wird mit raw `new`/`delete` verwaltet. Bei Fehlern in `http.begin()` wird `client` nicht freigegeben. |
-| **Risiko** | Schleichender Speicherverlust im Dauerbetrieb → Crash nach Stunden/Tagen. |
-| **Lösung** | `std::unique_ptr<WiFiClientSecure>` verwenden (RAII), damit der Speicher bei Scope-Verlassen automatisch freigegeben wird. |
+| **Datei** | `src/Transport/TransportModule.cpp` |
+| **Lösung umgesetzt** | Alle 3 `new WiFiClientSecure` durch `std::make_unique<WiFiClientSecure>()` ersetzt. Kein `delete` mehr nötig — automatische Freigabe via RAII. |
 
 ---
 
@@ -114,14 +104,14 @@ Dieses Dokument listet alle im Code-Review gefundenen Probleme, priorisiert nach
 | **Datei** | `platformio.ini` |
 | **Problem** | Nur ein Build-Profil (`[env:esp32s3]`) mit Debug-Konfiguration (`CORE_DEBUG_LEVEL=3`). |
 | **Lösung** | Zweites Profil `[env:esp32s3_production]` mit `CORE_DEBUG_LEVEL=1`, OTA-Partitionstabelle und Signierung hinzufügen. |
+| **Hinweis** | Grundlage geschaffen: `-DDEV_BUILD` Flag vorhanden, `partitions_ota.csv` erstellt. Das zweite `[env:...]` Profil folgt mit Phase 3 (Secure Boot). |
 
-### BL-12: Keine Firmware-Versionsnummer im Code
+### ✅ BL-12: Keine Firmware-Versionsnummer im Code — BEHOBEN (2026-02)
 
 | | |
 |---|---|
-| **Datei** | Nicht vorhanden |
-| **Problem** | Es gibt keine `FW_VERSION`-Konstante oder `version.h`. Das Gerät weiss nicht, welche Version es hat. |
-| **Lösung** | `include/version.h` erstellen mit `#define FW_VERSION "x.y.z"`. Version per Build-Flag aus `platformio.ini` setzen oder aus Git-Tag ableiten. |
+| **Datei** | `include/version.h` (neu), `src/main.cpp`, `src/DeviceIdentity/DeviceIdentity.cpp` |
+| **Lösung umgesetzt** | `include/version.h` mit `FW_VERSION "1.3.0"` sowie `FW_VERSION_MAJOR/MINOR/PATCH`. Version wird im Boot-Banner geloggt und via `/api/device` und `/api/status` bereitgestellt. |
 
 ### BL-13: JSON.parse ohne Error-Handling in app.js
 

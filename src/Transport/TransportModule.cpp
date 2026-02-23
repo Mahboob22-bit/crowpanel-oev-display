@@ -2,8 +2,10 @@
 #include "OjpParser.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <memory>
 #include "../Logger/Logger.h"
 #include "secrets.h"
+#include "certs.h"
 // #include "../Display/display_manager.h" // Entfernt, da wir jetzt SystemEvents nutzen
 
 // Endpoint für OJP 2.0 (Korrektur: ojp20 statt ojp2020)
@@ -113,9 +115,9 @@ std::vector<StopSearchResult> TransportModule::searchStops(const String& query) 
         return results;
     }
     
-    WiFiClientSecure *client = new WiFiClientSecure;
+    std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure());
     if (client) {
-        client->setInsecure(); // Für Development, später Root CA setzen
+        configureTLS(client.get());
         
         HTTPClient http;
         
@@ -148,7 +150,6 @@ std::vector<StopSearchResult> TransportModule::searchStops(const String& query) 
             
             http.end();
         }
-        delete client;
     }
     
     return results;
@@ -167,9 +168,9 @@ std::vector<LineInfo> TransportModule::getAvailableLines(const String& stopId) {
         return lines;
     }
     
-    WiFiClientSecure *client = new WiFiClientSecure;
+    std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure());
     if (client) {
-        client->setInsecure();
+        configureTLS(client.get());
         
         HTTPClient http;
         
@@ -189,10 +190,8 @@ std::vector<LineInfo> TransportModule::getAvailableLines(const String& stopId) {
                     String payload = http.getString();
                     Logger::info("TRANSPORT", "Lines response received");
                     
-                    // Parse Departures und extrahiere Linien-Info
                     std::vector<Departure> departures = OjpParser::parseResponse(payload);
                     
-                    // Dedupliziere Linien (gleiche Linie + Richtung + Typ)
                     for (const auto& dep : departures) {
                         bool exists = false;
                         for (const auto& existing : lines) {
@@ -226,7 +225,6 @@ std::vector<LineInfo> TransportModule::getAvailableLines(const String& stopId) {
             
             http.end();
         }
-        delete client;
     }
     
     return lines;
@@ -246,10 +244,9 @@ void TransportModule::fetchData() {
         xSemaphoreGive(_mutex);
     }
 
-    WiFiClientSecure *client = new WiFiClientSecure;
-    if(client) {
-        // Für Development akzeptieren wir unsichere Zertifikate, später Root CA setzen
-        client->setInsecure(); 
+    std::unique_ptr<WiFiClientSecure> client(new WiFiClientSecure());
+    if (client) {
+        configureTLS(client.get());
         
         HTTPClient http;
         
@@ -284,14 +281,12 @@ void TransportModule::fetchData() {
                         xSemaphoreGive(_mutex);
                     }
                     
-                    // Fire Event
                     if (eventQueue) {
                         SystemEvent event = EVENT_DATA_AVAILABLE;
                         xQueueSend(eventQueue, &event, 0);
                     }
                 } else {
                     Logger::printf("TRANSPORT", "HTTP Error: %d", httpCode);
-                    // 403 Forbidden -> API Key invalid or not active
                     if (httpCode == 403) {
                          Logger::error("TRANSPORT", "API Key invalid or not yet active. Please check your email/account.");
                     }
@@ -302,6 +297,13 @@ void TransportModule::fetchData() {
             
             http.end();
         }
-        delete client;
     }
+}
+
+void TransportModule::configureTLS(WiFiClientSecure* client) {
+#ifdef DEV_BUILD
+    client->setInsecure();
+#else
+    client->setCACert(ROOT_CA_CERT);
+#endif
 }
